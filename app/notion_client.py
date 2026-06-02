@@ -1,6 +1,8 @@
 import httpx
 import os
 
+from models import NotionCraftedDrinkProperties, NotionIngredientRow, NotionEquipmentRow
+
 NOTION_API_BASE = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
 
@@ -77,3 +79,56 @@ class NotionClient:
                 payload["start_cursor"] = data["next_cursor"]
 
         return results
+
+    # ---------------------------------------------------------------------------
+    # Parsing helpers
+    # ---------------------------------------------------------------------------
+
+    def parse_drink_properties(self, page: dict) -> NotionCraftedDrinkProperties:
+        """Parse a raw Notion page object into NotionCraftedDrinkProperties."""
+        props = page["properties"]
+        glassware_select = props["Glassware"]["select"]
+        return NotionCraftedDrinkProperties(
+            name=props["Name"]["title"][0]["plain_text"],
+            glassware=glassware_select["name"] if glassware_select else None,
+            tags=[t["name"] for t in props["Tags"]["multi_select"]],
+            notes="".join(r["plain_text"] for r in props["Notes"]["rich_text"]) or None,
+            author="".join(r["plain_text"] for r in props["Author"]["rich_text"]) or None,
+        )
+
+    def parse_blocks(self, blocks: list[dict]) -> tuple[dict[str, str], str | None]:
+        """Extract child database IDs and method steps from a page's block list.
+
+        Returns:
+            db_ids: dict mapping database title ("Ingredients", "Equipment") to block ID
+            method: numbered steps joined as a single string, or None if absent
+        """
+        db_ids: dict[str, str] = {}
+        steps: list[str] = []
+
+        for block in blocks:
+            if block["type"] == "child_database":
+                title = block["child_database"]["title"]
+                db_ids[title] = block["id"]
+            elif block["type"] == "numbered_list_item":
+                step = block["numbered_list_item"]["rich_text"][0]["plain_text"]
+                steps.append(step)
+
+        method = "\n".join(steps) or None
+        return db_ids, method
+
+    def parse_ingredient_row(self, row: dict) -> NotionIngredientRow:
+        """Parse a raw Notion page object from the Ingredients database."""
+        props = row["properties"]
+        unit_select = props["Unit"]["select"]
+        return NotionIngredientRow(
+            ingredient=props["Ingredient"]["title"][0]["plain_text"],
+            amount=props["Amount"]["number"],
+            unit=unit_select["name"] if unit_select else None,
+        )
+
+    def parse_equipment_row(self, row: dict) -> NotionEquipmentRow:
+        """Parse a raw Notion page object from the Equipment database."""
+        return NotionEquipmentRow(
+            name=row["properties"]["Name"]["title"][0]["plain_text"],
+        )
