@@ -63,6 +63,11 @@ class NotionCraftedDrinkProperties(BaseModel):
     author: str | None = None
 
 
+class NotionPageContent(BaseModel):
+    db_ids: dict[str, str]   # e.g. {"Ingredients": "...", "Equipment": "..."}
+    method: str | None = None
+
+
 class NotionIngredientRow(BaseModel):
     ingredient: str
     amount: float | None = None

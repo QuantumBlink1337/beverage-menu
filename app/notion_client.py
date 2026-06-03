@@ -1,7 +1,7 @@
 import os
 
 import httpx
-from models import NotionCraftedDrinkProperties, NotionEquipmentRow, NotionIngredientRow
+from models import NotionCraftedDrinkProperties, NotionEquipmentRow, NotionIngredientRow, NotionPageContent
 
 NOTION_API_BASE = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
@@ -94,7 +94,7 @@ class NotionClient:
             if page["properties"]["Name"]["title"][0]["plain_text"] not in "Template"
         ]
 
-    async def get_page_blocks(self, page_id: str) -> tuple[dict[str, str], str | None]:
+    async def get_page_blocks(self, page_id: str) -> NotionPageContent:
         """Return child database IDs by title and the method string for a drink page."""
         blocks = await self._fetch_page_blocks(page_id)
         return self.parse_blocks(blocks)
@@ -127,13 +127,8 @@ class NotionClient:
             or None,
         )
 
-    def parse_blocks(self, blocks: list[dict]) -> tuple[dict[str, str], str | None]:
-        """Extract child database IDs and method steps from a page's block list.
-
-        Returns:
-            db_ids: maps database title ("Ingredients", "Equipment") to block ID
-            method: numbered steps joined as a single string, or None if absent
-        """
+    def parse_blocks(self, blocks: list[dict]) -> NotionPageContent:
+        """Extract child database IDs and method steps from a page's block list."""
         db_ids: dict[str, str] = {}
         steps: list[str] = []
 
@@ -145,7 +140,10 @@ class NotionClient:
                 step = block["numbered_list_item"]["rich_text"][0]["plain_text"]
                 steps.append(step)
 
-        return db_ids, "\n".join(steps) or None
+        return NotionPageContent(
+            db_ids=db_ids,
+            method="\n".join(steps) or None,
+        )
 
     def parse_ingredient_row(self, row: dict) -> NotionIngredientRow:
         props = row["properties"]
