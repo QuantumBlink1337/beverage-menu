@@ -59,12 +59,13 @@ class NotionCraftedDrinkProperties(BaseModel):
     name: str
     glassware: str | None = None
     tags: list[str] = []
+    equipment: list[str] = []  # multi-select property on the drink page
     notes: str | None = None   # maps to "Notes" property — host mode only
     author: str | None = None
 
 
 class NotionPageContent(BaseModel):
-    db_ids: dict[str, str]   # e.g. {"Ingredients": "...", "Equipment": "..."}
+    db_ids: dict[str, str]   # e.g. {"Ingredients": "..."}
     method: str | None = None
 
 
@@ -72,10 +73,6 @@ class NotionIngredientRow(BaseModel):
     ingredient: str
     amount: float | None = None
     unit: str | None = None  # select: "oz", "piece" (will grow)
-
-
-class NotionEquipmentRow(BaseModel):
-    name: str
 
 
 # ---------------------------------------------------------------------------

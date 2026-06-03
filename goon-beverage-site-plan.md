@@ -121,30 +121,37 @@ No special modeling. When stocking a variety pack, add quantity manually per fla
 
 ## Notion Schema
 
-### Cocktails database (one row per cocktail)
+### Crafted Drinks database (one row per drink)
 
 | Property | Type | Notes |
 |---|---|---|
-| Name | Title | Cocktail name |
-| Glassware | Select | Rocks, coupe, highball, martini, etc. |
-| Tags | Multi-select | NYE, Summer, LOTR, Citrus, Boozy, etc. |
-| Garnish | Text | e.g. "lemon twist, 2 brandied cherries" |
-| Host Notes | Text | Prep tips, sourcing notes — host mode only |
+| Name | Title | Drink name |
+| Glassware | Select | Rocks, Coupe, Wine, Flute, Highball |
+| Tags | Multi-select | NYE, Alcohol, etc. |
+| Equipment | Multi-select | Cocktail Shaker, Strainer, Jigger, etc. |
+| Notes | Text | Prep tips, sourcing notes — host mode only |
+| Author | Text | Host mode only |
 
 Page content (freeform):
-- Method/steps as written text
+- Method/steps as a numbered list
 
-### Per cocktail page — embedded ingredients database
+### Per drink page — embedded ingredients database
 
 | Column | Type | Notes |
 |---|---|---|
 | Ingredient | Title | e.g. "Vodka", "Amaretto", "Lemon juice" |
 | Amount | Number | e.g. 1.5 |
-| Unit | Select | oz, ml, dash, tsp, splash, barspoon |
+| Unit | Select | oz, piece (grows over time) |
+
+### API call cost
+- 1 call to fetch all drink pages and their properties (includes Equipment, Tags, etc.)
+- 1 call per drink to fetch page blocks (to locate the Ingredients DB ID and extract method steps)
+- 1 call per drink to query the embedded Ingredients database
+- Total for 40 drinks: ~81 calls, ~27s refresh at 3 req/s
 
 ### Workflow
-- A master cocktail template page exists in the database with the ingredients database pre-built
-- To add a cocktail: clone the template, rename it, fill in properties, populate the ingredients database
+- A master template page exists in the database with the Ingredients database pre-built
+- To add a drink: clone the template, rename it, fill in properties, populate the ingredients database
 - App never writes to Notion — strictly read-only
 
 ---
@@ -160,6 +167,28 @@ CREATE TABLE ingredient_mapping (
 );
 ```
 
+### `notion_cache` table
+```sql
+CREATE TABLE notion_cache (
+    key TEXT PRIMARY KEY,
+    data TEXT NOT NULL,   -- JSON-serialised payload
+    cached_at TEXT NOT NULL  -- ISO-8601 UTC timestamp
+);
+```
+
+Rows are keyed by a stable string (e.g. `"crafted_drinks"`). The entire crafted drinks payload — properties, blocks, ingredients, equipment — is serialised to JSON and stored as a single row.
+
+### Cache TTL and refresh
+
+- **TTL: 12 hours.** On each request the router checks `cached_at`; if the cache is older than 12 hours it triggers a background refresh.
+- **Startup refresh.** On app startup, if no cache row exists the cache is populated before the first request is served.
+- **Manual refresh endpoint.** `POST /api/crafted_drinks/refresh` (host mode only) triggers an immediate background refresh regardless of TTL. Used by the host-facing "Refresh" button on the website.
+- **Background execution.** All refreshes run as FastAPI `BackgroundTask`s — the triggering request returns immediately and the refresh happens asynchronously.
+
+### Notion API throttle
+
+The Notion client enforces a maximum of 3 requests/second during cache refresh using an `asyncio.Semaphore`. With 40 crafted drinks, a full refresh costs ~121 API calls and takes ~40 seconds. This is acceptable as a background operation.
+
 ### Matching logic
 - Exact name match only, no fuzzy matching
 - If `notion_ingredient_name` has no row, ingredient is considered unmatched
@@ -167,7 +196,7 @@ CREATE TABLE ingredient_mapping (
 - Host mode UI allows assigning a Grocy product to any unmatched ingredient — no raw SQL needed
 
 ### Usage
-FastAPI looks up each ingredient name from the embedded Notion database against this table to get a Grocy product ID, then checks Grocy stock for that product ID to determine availability.
+FastAPI reads crafted drinks from the `notion_cache` SQLite table. The Notion API is only contacted during cache refresh. Ingredient names from the cached payload are looked up against `ingredient_mapping` to get Grocy product IDs, which are then checked against live Grocy stock.
 
 ---
 
@@ -219,22 +248,29 @@ Response shape:
 
 ---
 
-### Cocktails
+### Crafted Drinks
 
-**`GET /api/cocktails`**
+**`GET /api/crafted_drinks`**
 
-Returns all cocktails with availability computed.
+Returns all crafted drinks with availability computed.
 
 Fetch flow:
-1. Query Notion Cocktails database for all rows + properties
-2. For each cocktail page, fetch page content to locate embedded ingredients database block
-3. Query each embedded ingredients database for its rows (`Ingredient`, `Amount`, `Unit`)
-4. For each ingredient name, look up `grocy_product_id` in SQLite `ingredient_mapping`
-5. For each matched product ID, check Grocy stock (`amount > 0`)
-6. Compute `available: true` only if all matched ingredients are in stock
-7. Unmatched ingredients do not fail availability — they are flagged separately in host response
-8. Strip `Host Notes` from guest responses
-9. Return structured response
+1. Read crafted drinks payload from `notion_cache` SQLite table
+2. If cache is missing or older than 12 hours, trigger background refresh and serve stale data (or empty if no cache exists yet)
+3. For each ingredient name, look up `grocy_product_id` in SQLite `ingredient_mapping`
+4. For each matched product ID, check Grocy stock (`amount > 0`)
+5. Compute `available: true` only if all matched ingredients are in stock
+6. Unmatched ingredients do not fail availability — they are flagged separately in host response
+7. Strip `notes` and `author` from guest responses
+8. Return structured response
+
+**`GET /api/crafted_drinks?tags=NYE,Summer`**
+
+Same flow, filtered to crafted drinks whose tags intersect the provided list. Used for PDF export.
+
+**`POST /api/crafted_drinks/refresh`** *(host mode only)*
+
+Triggers an immediate background refresh of the Notion cache. Returns `202 Accepted` immediately; refresh runs asynchronously. Used by the host-facing "Refresh" button.
 
 Response shape:
 ```json

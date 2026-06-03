@@ -1,7 +1,7 @@
 import os
 
 import httpx
-from models import NotionCraftedDrinkProperties, NotionEquipmentRow, NotionIngredientRow, NotionPageContent
+from models import NotionCraftedDrinkProperties, NotionIngredientRow, NotionPageContent
 
 NOTION_API_BASE = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
@@ -91,7 +91,7 @@ class NotionClient:
         return [
             self.parse_drink_properties(page)
             for page in pages
-            if page["properties"]["Name"]["title"][0]["plain_text"] not in "Template"
+            if "Template" not in page["properties"]["Name"]["title"][0]["plain_text"]
         ]
 
     async def get_page_blocks(self, page_id: str) -> NotionPageContent:
@@ -104,12 +104,7 @@ class NotionClient:
         rows = await self._fetch_database_rows(database_id)
         return [self.parse_ingredient_row(row) for row in rows]
 
-    async def get_equipment_rows(self, database_id: str) -> list[NotionEquipmentRow]:
-        """Return parsed equipment rows for an embedded Equipment database."""
-        rows = await self._fetch_database_rows(database_id)
-        return [self.parse_equipment_row(row) for row in rows]
-
-    # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
     # Parsing helpers
     # ---------------------------------------------------------------------------
 
@@ -121,6 +116,7 @@ class NotionClient:
             name=properties["Name"]["title"][0]["plain_text"],
             glassware=glassware_select["name"] if glassware_select else None,
             tags=[t["name"] for t in properties["Tags"]["multi_select"]],
+            equipment=[e["name"] for e in properties["Equipment"]["multi_select"]],
             notes="".join(r["plain_text"] for r in properties["Notes"]["rich_text"])
             or None,
             author="".join(r["plain_text"] for r in properties["Author"]["rich_text"])
@@ -154,7 +150,3 @@ class NotionClient:
             unit=unit_select["name"] if unit_select else None,
         )
 
-    def parse_equipment_row(self, row: dict) -> NotionEquipmentRow:
-        return NotionEquipmentRow(
-            name=row["properties"]["Name"]["title"][0]["plain_text"],
-        )
