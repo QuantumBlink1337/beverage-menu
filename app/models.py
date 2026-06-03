@@ -55,6 +55,7 @@ class BeveragesResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class NotionCraftedDrinkProperties(BaseModel):
+    page_id: str
     name: str
     glassware: str | None = None
     tags: list[str] = []

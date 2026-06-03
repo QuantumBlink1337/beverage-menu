@@ -1,7 +1,7 @@
-import httpx
 import os
 
-from models import NotionCraftedDrinkProperties, NotionIngredientRow, NotionEquipmentRow
+import httpx
+from models import NotionCraftedDrinkProperties, NotionEquipmentRow, NotionIngredientRow
 
 NOTION_API_BASE = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
@@ -17,8 +17,11 @@ class NotionClient:
             "Content-Type": "application/json",
         }
 
-    async def get_crafted_drinks(self) -> list[dict]:
-        """Query the crafted drinks database. Returns raw Notion page objects."""
+    # ---------------------------------------------------------------------------
+    # Private fetch methods — return raw Notion response dicts
+    # ---------------------------------------------------------------------------
+
+    async def _fetch_crafted_drinks(self) -> list[dict]:
         results = []
         payload: dict = {}
 
@@ -39,8 +42,7 @@ class NotionClient:
 
         return results
 
-    async def get_page_blocks(self, page_id: str) -> list[dict]:
-        """Fetch top-level blocks for a page. Used to locate the embedded ingredients database."""
+    async def _fetch_page_blocks(self, page_id: str) -> list[dict]:
         results = []
         url = f"{NOTION_API_BASE}/blocks/{page_id}/children"
         params: dict = {}
@@ -58,8 +60,7 @@ class NotionClient:
 
         return results
 
-    async def get_database_rows(self, database_id: str) -> list[dict]:
-        """Query an embedded database (e.g. ingredients). Returns raw Notion page objects."""
+    async def _fetch_database_rows(self, database_id: str) -> list[dict]:
         results = []
         payload: dict = {}
 
@@ -81,26 +82,56 @@ class NotionClient:
         return results
 
     # ---------------------------------------------------------------------------
+    # Public methods — return typed, parsed objects
+    # ---------------------------------------------------------------------------
+
+    async def get_crafted_drinks(self) -> list[NotionCraftedDrinkProperties]:
+        """Return all crafted drink pages as parsed properties, excluding the template."""
+        pages = await self._fetch_crafted_drinks()
+        return [
+            self.parse_drink_properties(page)
+            for page in pages
+            if page["properties"]["Name"]["title"][0]["plain_text"] not in "Template"
+        ]
+
+    async def get_page_blocks(self, page_id: str) -> tuple[dict[str, str], str | None]:
+        """Return child database IDs by title and the method string for a drink page."""
+        blocks = await self._fetch_page_blocks(page_id)
+        return self.parse_blocks(blocks)
+
+    async def get_ingredient_rows(self, database_id: str) -> list[NotionIngredientRow]:
+        """Return parsed ingredient rows for an embedded Ingredients database."""
+        rows = await self._fetch_database_rows(database_id)
+        return [self.parse_ingredient_row(row) for row in rows]
+
+    async def get_equipment_rows(self, database_id: str) -> list[NotionEquipmentRow]:
+        """Return parsed equipment rows for an embedded Equipment database."""
+        rows = await self._fetch_database_rows(database_id)
+        return [self.parse_equipment_row(row) for row in rows]
+
+    # ---------------------------------------------------------------------------
     # Parsing helpers
     # ---------------------------------------------------------------------------
 
     def parse_drink_properties(self, page: dict) -> NotionCraftedDrinkProperties:
-        """Parse a raw Notion page object into NotionCraftedDrinkProperties."""
-        props = page["properties"]
-        glassware_select = props["Glassware"]["select"]
+        properties = page["properties"]
+        glassware_select = properties["Glassware"]["select"]
         return NotionCraftedDrinkProperties(
-            name=props["Name"]["title"][0]["plain_text"],
+            page_id=page["id"],
+            name=properties["Name"]["title"][0]["plain_text"],
             glassware=glassware_select["name"] if glassware_select else None,
-            tags=[t["name"] for t in props["Tags"]["multi_select"]],
-            notes="".join(r["plain_text"] for r in props["Notes"]["rich_text"]) or None,
-            author="".join(r["plain_text"] for r in props["Author"]["rich_text"]) or None,
+            tags=[t["name"] for t in properties["Tags"]["multi_select"]],
+            notes="".join(r["plain_text"] for r in properties["Notes"]["rich_text"])
+            or None,
+            author="".join(r["plain_text"] for r in properties["Author"]["rich_text"])
+            or None,
         )
 
     def parse_blocks(self, blocks: list[dict]) -> tuple[dict[str, str], str | None]:
         """Extract child database IDs and method steps from a page's block list.
 
         Returns:
-            db_ids: dict mapping database title ("Ingredients", "Equipment") to block ID
+            db_ids: maps database title ("Ingredients", "Equipment") to block ID
             method: numbered steps joined as a single string, or None if absent
         """
         db_ids: dict[str, str] = {}
@@ -114,11 +145,9 @@ class NotionClient:
                 step = block["numbered_list_item"]["rich_text"][0]["plain_text"]
                 steps.append(step)
 
-        method = "\n".join(steps) or None
-        return db_ids, method
+        return db_ids, "\n".join(steps) or None
 
     def parse_ingredient_row(self, row: dict) -> NotionIngredientRow:
-        """Parse a raw Notion page object from the Ingredients database."""
         props = row["properties"]
         unit_select = props["Unit"]["select"]
         return NotionIngredientRow(
@@ -128,7 +157,6 @@ class NotionClient:
         )
 
     def parse_equipment_row(self, row: dict) -> NotionEquipmentRow:
-        """Parse a raw Notion page object from the Equipment database."""
         return NotionEquipmentRow(
             name=row["properties"]["Name"]["title"][0]["plain_text"],
         )
