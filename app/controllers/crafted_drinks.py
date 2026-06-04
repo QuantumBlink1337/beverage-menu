@@ -39,6 +39,7 @@ async def refresh() -> None:
 
         data = drink.model_dump()
         data["notion_page_id"] = data.pop("page_id")
+        data["method"] = content.method
         data["ingredients"] = ingredients
         return data
 
