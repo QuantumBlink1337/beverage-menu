@@ -42,7 +42,6 @@ class Product(BaseModel):
 
 class BeverageGroup(BaseModel):
     name: str
-    display_group: str  # "Alcohol" for Beer/Wine/Liquor, else same as name
     products: list[Product]
 
 
