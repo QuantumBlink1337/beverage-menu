@@ -114,3 +114,100 @@ def raw_ingredient_row_no_unit(raw_ingredient_row):
     row["properties"] = raw_ingredient_row["properties"].copy()
     row["properties"]["Unit"] = {"type": "select", "select": None}
     return row
+
+
+# ---------------------------------------------------------------------------
+# Raw Grocy response fixtures — shaped from live API responses (2026-06-03)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def raw_product_group():
+    """A raw Grocy product group object."""
+    return {
+        "id": 1,
+        "name": "Alcohol",
+        "description": None,
+        "row_created_timestamp": "2026-05-31 20:09:20",
+        "active": 1,
+    }
+
+
+@pytest.fixture
+def raw_product_child():
+    """A raw Grocy child product (has stock, belongs to a parent)."""
+    return {
+        "id": 1,
+        "name": "High Noon | Pineapple",
+        "description": None,
+        "product_group_id": 1,
+        "parent_product_id": 2,
+        "no_own_stock": 0,
+        "location_id": 2,
+        "qu_id_stock": 6,
+        "qu_id_purchase": 3,
+        "active": 1,
+        "row_created_timestamp": "2026-05-31 20:11:13",
+    }
+
+
+@pytest.fixture
+def raw_product_parent():
+    """A raw Grocy parent product (no_own_stock=1, no direct stock)."""
+    return {
+        "id": 2,
+        "name": "High Noon ",   # trailing whitespace intentional — matches live data
+        "description": None,
+        "product_group_id": 1,
+        "parent_product_id": None,
+        "no_own_stock": 1,
+        "location_id": 2,
+        "qu_id_stock": 6,
+        "qu_id_purchase": 3,
+        "active": 1,
+        "row_created_timestamp": "2026-05-31 20:20:01",
+    }
+
+
+@pytest.fixture
+def raw_stock_entry():
+    """A raw Grocy stock batch entry."""
+    return {
+        "id": 1,
+        "product_id": 1,
+        "amount": 3,
+        "location_id": 2,
+        "best_before_date": "2999-12-31",
+        "purchased_date": "2026-05-31",
+        "stock_id": "6a1cdf25519b5",
+        "price": 0,
+        "open": 0,
+        "opened_date": None,
+        "row_created_timestamp": "2026-05-31 20:23:49",
+        "note": None,
+    }
+
+
+@pytest.fixture
+def raw_location():
+    """A raw Grocy location object."""
+    return {
+        "id": 2,
+        "name": "Fridge",
+        "description": None,
+        "row_created_timestamp": "2026-05-31 20:05:18",
+        "is_freezer": 0,
+        "active": 1,
+    }
+
+
+@pytest.fixture
+def raw_location_bar():
+    """A second Grocy location for multi-location tests."""
+    return {
+        "id": 3,
+        "name": "Bar Shelf",
+        "description": None,
+        "row_created_timestamp": "2026-05-31 20:07:30",
+        "is_freezer": 0,
+        "active": 1,
+    }

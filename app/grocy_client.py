@@ -7,49 +7,47 @@ from models import GrocyProduct, GrocyProductGroup, GrocyStockEntry
 
 class GrocyClient:
     def __init__(self):
-        self.base_url = os.environ["GROCY_URL"].rstrip("/")
+        self.base_url = os.environ["GROCY_URL"].rstrip("/").removesuffix("/api")
         self.api_key = os.environ["GROCY_API_KEY"]
         self.headers = {"GROCY-API-KEY": self.api_key}
+        # Grocy runs behind Tailscale Serve which uses a Tailscale-provisioned
+        # certificate that Python's certifi bundle doesn't trust. Safe to skip
+        # verification for a self-hosted internal service on a private Tailnet.
+        self._http_client = httpx.AsyncClient(
+            headers=self.headers, verify=False
+        )
 
     # ---------------------------------------------------------------------------
     # Private fetch methods — return raw Grocy response dicts
     # ---------------------------------------------------------------------------
 
     async def _fetch_product_groups(self) -> list[dict]:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}/api/objects/product_groups",
-                headers=self.headers,
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self._http_client.get(
+            f"{self.base_url}/api/objects/product_groups"
+        )
+        response.raise_for_status()
+        return response.json()
 
     async def _fetch_products(self) -> list[dict]:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}/api/objects/products",
-                headers=self.headers,
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self._http_client.get(
+            f"{self.base_url}/api/objects/products"
+        )
+        response.raise_for_status()
+        return response.json()
 
     async def _fetch_stock(self) -> list[dict]:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}/api/objects/stock",
-                headers=self.headers,
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self._http_client.get(
+            f"{self.base_url}/api/objects/stock"
+        )
+        response.raise_for_status()
+        return response.json()
 
     async def _fetch_locations(self) -> list[dict]:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}/api/objects/locations",
-                headers=self.headers,
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self._http_client.get(
+            f"{self.base_url}/api/objects/locations"
+        )
+        response.raise_for_status()
+        return response.json()
 
     # ---------------------------------------------------------------------------
     # Public methods — return typed, parsed objects
