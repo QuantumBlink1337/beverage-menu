@@ -70,9 +70,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+from routers import beverages
+app.include_router(beverages.router, prefix="/api")
+
 # Routers — uncomment as each is built.
-# from routers import beverages, crafted_drinks
-# app.include_router(beverages.router, prefix="/api")
+# from routers import crafted_drinks
 # app.include_router(crafted_drinks.router, prefix="/api")
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
