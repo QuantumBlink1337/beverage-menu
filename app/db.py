@@ -103,8 +103,10 @@ class GrocyProduct(BaseModel):
 
     @classmethod
     def upsert_all(cls, products: list[dict]) -> None:
+        # Insert parents before children to satisfy the self-referential FK.
+        ordered = sorted(products, key=lambda p: p.get("parent_product_id") is not None)
         with database.atomic():
-            for data in products:
+            for data in ordered:
                 _, created = cls.get_or_create(id=data["id"], defaults=data)
                 if not created:
                     cls.update(**{k: v for k, v in data.items() if k != "id"}).where(

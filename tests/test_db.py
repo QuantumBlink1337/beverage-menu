@@ -203,6 +203,16 @@ class TestGrocyModels:
         child = GrocyProduct.get_by_id(2)
         assert child.parent_product_id == 1
 
+    def test_upsert_child_before_parent_in_list(self):
+        # API response may return children before their parent — upsert_all must
+        # sort to insert parents first or the self-referential FK will fail.
+        GrocyProductGroup.upsert_all([_group()])
+        GrocyProduct.upsert_all([
+            _product(id=2, name="High Noon | Pineapple", parent_product_id=1),
+            _product(id=1, name="High Noon", no_own_stock=True),
+        ])
+        assert GrocyProduct.select().count() == 2
+
     def test_replace_stock_entries(self):
         GrocyProductGroup.upsert_all([_group()])
         GrocyProduct.upsert_all([_product()])

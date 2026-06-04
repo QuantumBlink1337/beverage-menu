@@ -59,9 +59,9 @@ async def lifespan(app: FastAPI):
     init_db(db)
 
     # Populate recipe cache before serving the first request if it's empty or stale.
-    # TODO: wire up controller once app/controllers/crafted_drinks.py is built.
     if CacheStatus.is_recipe_stale():
-        pass  # await crafted_drinks_controller.refresh()
+        from controllers.crafted_drinks import refresh
+        await refresh()
 
     yield
 
@@ -70,11 +70,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-from routers import beverages
+from routers import beverages, crafted_drinks, mappings
 app.include_router(beverages.router, prefix="/api")
-
-# Routers — uncomment as each is built.
-# from routers import crafted_drinks
-# app.include_router(crafted_drinks.router, prefix="/api")
+app.include_router(crafted_drinks.router, prefix="/api")
+app.include_router(mappings.router, prefix="/api")
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
