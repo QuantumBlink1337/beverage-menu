@@ -161,6 +161,24 @@ class TestBuildResponseIngredients:
 
 
 # ---------------------------------------------------------------------------
+# TestBuildResponseMethod
+# ---------------------------------------------------------------------------
+
+class TestBuildResponseMethod:
+    def test_method_returned_when_present(self):
+        _seed_drink(method="Shake with ice.\nStrain over rocks.")
+
+        result = _build_response(host_mode=False)
+        assert result.crafted_drinks[0].method == "Shake with ice.\nStrain over rocks."
+
+    def test_method_none_when_not_set(self):
+        _seed_drink(method=None)
+
+        result = _build_response(host_mode=False)
+        assert result.crafted_drinks[0].method is None
+
+
+# ---------------------------------------------------------------------------
 # TestBuildResponseHostMode
 # ---------------------------------------------------------------------------
 
