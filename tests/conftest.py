@@ -188,6 +188,18 @@ def raw_stock_entry():
 
 
 @pytest.fixture
+def raw_quantity_unit():
+    """A raw Grocy quantity unit object (id matches raw_product_*.qu_id_stock)."""
+    return {
+        "id": 6,
+        "name": "Can",
+        "name_plural": "Cans",
+        "description": None,
+        "active": 1,
+    }
+
+
+@pytest.fixture
 def raw_location():
     """A raw Grocy location object."""
     return {

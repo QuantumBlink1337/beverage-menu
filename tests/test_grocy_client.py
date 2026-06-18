@@ -121,10 +121,16 @@ class TestAggregateStock:
         result = client.aggregate_stock([raw_stock_entry, second_batch], location_map)
         assert result[0].location_name == "Fridge"
 
-    def test_stock_unit_name_is_none(self, client, raw_stock_entry):
-        # unit resolution (via quantity_units + product.qu_id_stock) not yet implemented
+    def test_stock_unit_name_none_when_no_map(self, client, raw_stock_entry):
+        # No product_unit_map supplied → unit unresolved.
         result = client.aggregate_stock([raw_stock_entry], location_map={})
         assert result[0].stock_unit_name is None
+
+    def test_stock_unit_name_resolved_from_map(self, client, raw_stock_entry):
+        result = client.aggregate_stock(
+            [raw_stock_entry], location_map={}, product_unit_map={1: "Can"}
+        )
+        assert result[0].stock_unit_name == "Can"
 
     def test_empty_entries_returns_empty(self, client):
         result = client.aggregate_stock([], location_map={})
@@ -186,22 +192,29 @@ class TestGetProducts:
 
 class TestGetStock:
     @pytest.mark.asyncio
-    async def test_returns_aggregated_stock(self, client, raw_stock_entry, raw_location):
+    async def test_returns_aggregated_stock(
+        self, client, raw_stock_entry, raw_location, raw_product_child, raw_product_parent, raw_quantity_unit
+    ):
         with (
             patch.object(client, "_fetch_stock", new=AsyncMock(return_value=[raw_stock_entry])),
             patch.object(client, "_fetch_locations", new=AsyncMock(return_value=[raw_location])),
+            patch.object(client, "_fetch_products", new=AsyncMock(return_value=[raw_product_child, raw_product_parent])),
+            patch.object(client, "_fetch_quantity_units", new=AsyncMock(return_value=[raw_quantity_unit])),
         ):
             result = await client.get_stock()
         assert len(result) == 1
         assert result[0].product_id == 1
         assert result[0].amount == 3.0
         assert result[0].location_name == "Fridge"
+        assert result[0].stock_unit_name == "Can"
 
     @pytest.mark.asyncio
     async def test_empty_stock(self, client, raw_location):
         with (
             patch.object(client, "_fetch_stock", new=AsyncMock(return_value=[])),
             patch.object(client, "_fetch_locations", new=AsyncMock(return_value=[raw_location])),
+            patch.object(client, "_fetch_products", new=AsyncMock(return_value=[])),
+            patch.object(client, "_fetch_quantity_units", new=AsyncMock(return_value=[])),
         ):
             result = await client.get_stock()
         assert result == []

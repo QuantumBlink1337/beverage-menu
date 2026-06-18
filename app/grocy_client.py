@@ -49,6 +49,13 @@ class GrocyClient:
         response.raise_for_status()
         return response.json()
 
+    async def _fetch_quantity_units(self) -> list[dict]:
+        response = await self._http_client.get(
+            f"{self.base_url}/api/objects/quantity_units"
+        )
+        response.raise_for_status()
+        return response.json()
+
     # ---------------------------------------------------------------------------
     # Public methods — return typed, parsed objects
     # ---------------------------------------------------------------------------
@@ -69,15 +76,22 @@ class GrocyClient:
         product, matching the replace_all() semantics.
 
         location_name is resolved via a /objects/locations lookup.
-        stock_unit_name is not yet resolved (requires /objects/quantity_units
-        cross-referenced with product.qu_id_stock — follow-up task).
+        stock_unit_name is resolved by cross-referencing each product's
+        qu_id_stock against the /objects/quantity_units table.
         """
-        raw_stock, raw_locations = (
+        raw_stock, raw_locations, raw_products, raw_units = (
             await self._fetch_stock(),
             await self._fetch_locations(),
+            await self._fetch_products(),
+            await self._fetch_quantity_units(),
         )
         location_map = {loc["id"]: loc["name"] for loc in raw_locations}
-        return self.aggregate_stock(raw_stock, location_map)
+        unit_name_by_id = {u["id"]: u["name"] for u in raw_units}
+        product_unit_map = {
+            p["id"]: unit_name_by_id.get(p.get("qu_id_stock"))
+            for p in raw_products
+        }
+        return self.aggregate_stock(raw_stock, location_map, product_unit_map)
 
     # ---------------------------------------------------------------------------
     # Parsing helpers
@@ -97,14 +111,20 @@ class GrocyClient:
         )
 
     def aggregate_stock(
-        self, entries: list[dict], location_map: dict[int, str]
+        self,
+        entries: list[dict],
+        location_map: dict[int, str],
+        product_unit_map: dict[int, str | None] | None = None,
     ) -> list[GrocyStockEntry]:
         """Aggregate raw batch entries into one GrocyStockEntry per product.
 
         Amount is summed across all batches. location_name is taken from the
         first batch's location_id; if a product is split across multiple
         locations, only the first is recorded (sufficient for display purposes).
+        stock_unit_name is looked up from product_unit_map (product_id → unit
+        name) when provided.
         """
+        product_unit_map = product_unit_map or {}
         totals: dict[int, float] = defaultdict(float)
         first_location: dict[int, int | None] = {}
 
@@ -121,6 +141,7 @@ class GrocyClient:
                 location_name=location_map.get(first_location[pid])
                 if first_location.get(pid) is not None
                 else None,
+                stock_unit_name=product_unit_map.get(pid),
             )
             for pid, amount in totals.items()
         ]
