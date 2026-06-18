@@ -1,1 +1,123 @@
-<!DOCTYPE html><html><body><p>Coming soon.</p></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GOON Bar</title>
+
+  <!-- 1st: defines app() globally  (static/ is mounted at URL root, so no /static prefix) -->
+  <script src="/app.js"></script>
+  <!-- 2nd: Alpine boots on load and evaluates x-data="app()" -->
+  <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+
+  <!-- TODO (Module 8): <link rel="stylesheet" href="/style.css"> -->
+</head>
+<body x-data="app()">
+
+  <!-- Page banner -->
+  <header>
+    <img src="/logo.svg" alt="" width="48" height="48">
+    <h1>GOON Bar</h1>
+  </header>
+
+  <!-- Category tabs — driven by the `categories` config array -->
+  <nav aria-label="Drink categories">
+    <template x-for="cat in categories" :key="cat.id">
+      <button
+        type="button"
+        @click="selectCategory(cat.id)"
+        :class="{ active: activeCategory === cat.id }"
+        x-text="cat.label">
+      </button>
+    </template>
+  </nav>
+
+  <main>
+
+    <!-- async status messages (Module 4 per-source status) -->
+    <p x-show="beverageStatus === 'loading' || cocktailStatus === 'loading'">Loading the menu…</p>
+    <p x-show="beverageStatus === 'error' && cocktailStatus === 'error'">Sorry — the menu couldn’t load.</p>
+
+    <!-- BEVERAGES: one <section> per visible group, cards inside -->
+    <template x-for="group in visibleGroups" :key="group.name">
+      <section>
+        <h2 x-text="group.name"></h2>
+
+        <template x-for="product in group.products" :key="product.id">
+          <article>
+            <h3 x-text="product.name"></h3>
+
+            <!-- host-only stock line -->
+            <p x-show="hostMode && product.amount !== null"
+               x-text="product.amount + ' ' + product.unit"></p>
+
+            <!-- variants (children), e.g. High Noon flavors -->
+            <template x-for="child in product.children" :key="child.id">
+              <p>
+                <span x-text="child.name"></span>
+                <span x-show="hostMode" x-text="'· ' + child.amount + ' ' + child.unit"></span>
+              </p>
+            </template>
+          </article>
+        </template>
+      </section>
+    </template>
+
+    <!-- COCKTAILS -->
+    <section x-show="visibleCocktails.length" aria-labelledby="cocktails-heading">
+      <h2 id="cocktails-heading">Cocktails</h2>
+
+      <template x-for="c in visibleCocktails" :key="c.id">
+        <article>
+          <h3 x-text="c.name"></h3>
+          <!-- host-only: flag cocktails that can't be made right now -->
+          <p class="warn" x-show="hostMode && !c.available">Unavailable — missing ingredients</p>
+          <p class="tags" x-show="c.tags.length" x-text="c.tags.join(' · ')"></p>
+
+          <!-- menu-style ingredient prose, shown to everyone (names only, no quantities) -->
+          <p class="ingredients" x-text="ingredientNames(c)"></p>
+
+          <!-- prep detail is host-only: guests don't need amounts/method/etc. -->
+          <button
+            type="button"
+            x-show="hostMode"
+            @click="toggleCocktail(c.id)"
+            :aria-expanded="isExpanded(c.id)"
+            x-text="isExpanded(c.id) ? 'Hide prep' : 'Prep details'">
+          </button>
+
+          <div x-show="hostMode && isExpanded(c.id)">
+
+            <!-- full ingredient breakdown with amounts + stock flags (host prep view) -->
+            <template x-for="ing in c.ingredients" :key="ing.ingredient">
+              <p>
+                <span x-text="ing.ingredient"></span>
+                <span x-show="ing.amount" x-text="'— ' + ing.amount + ' ' + (ing.unit || '')"></span>
+                <span class="warn" x-show="!ing.in_stock"> · out of stock</span>
+                <span class="warn" x-show="!ing.matched"> · unmatched</span>
+              </p>
+            </template>
+
+            <p x-show="c.method"><strong>Method:</strong> <span x-text="c.method"></span></p>
+            <p x-show="c.equipment.length"><strong>Equipment:</strong> <span x-text="c.equipment.join(', ')"></span></p>
+            <p x-show="c.host_notes"><strong>Notes:</strong> <span x-text="c.host_notes"></span></p>
+            <p x-show="c.author"><strong>By:</strong> <span x-text="c.author"></span></p>
+            <p class="warn" x-show="c.unmatched_ingredients.length">
+              ⚠ Unmatched ingredients: <span x-text="c.unmatched_ingredients.join(', ')"></span>
+            </p>
+
+          </div>
+        </article>
+      </template>
+    </section>
+
+    <!-- empty state: ready, but nothing in this category -->
+    <p x-show="beverageStatus === 'ready' && cocktailStatus === 'ready'
+               && visibleGroups.length === 0 && visibleCocktails.length === 0">
+      Nothing in this category right now.
+    </p>
+
+  </main>
+
+</body>
+</html>
