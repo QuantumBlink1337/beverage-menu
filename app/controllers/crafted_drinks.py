@@ -3,6 +3,7 @@ import asyncio
 from db import (
     CacheStatus,
     CraftedDrink as DBCraftedDrink,
+    GrocyProduct,
     GrocyStockEntry,
     IngredientMapping,
 )
@@ -57,10 +58,15 @@ def _build_response(
         e.product_id for e in GrocyStockEntry.select() if e.amount > 0
     }
 
-    # Build ingredient name → grocy_product_id mapping.
     ingredient_map: dict[str, int] = {
         m.notion_ingredient_name: m.grocy_product_id
         for m in IngredientMapping.select()
+    }
+
+    # Fallback: auto-match when a Notion ingredient name exactly equals a Grocy
+    # product name. The explicit mapping above always takes precedence.
+    grocy_by_name: dict[str, int] = {
+        p.name: p.id for p in GrocyProduct.select()
     }
 
     db_drinks = list(DBCraftedDrink.select())
@@ -77,7 +83,10 @@ def _build_response(
         all_matched_in_stock = True
 
         for ing in db_drink.ingredients:
+            # Explicit mapping wins; fall back to an exact Grocy product-name match.
             grocy_product_id = ingredient_map.get(ing.ingredient)
+            if grocy_product_id is None:
+                grocy_product_id = grocy_by_name.get(ing.ingredient)
             if grocy_product_id is None:
                 unmatched.append(ing.ingredient)
                 ingredients.append(IngredientDetail(
