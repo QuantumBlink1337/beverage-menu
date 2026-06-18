@@ -126,7 +126,7 @@
                                         x-show="ing.amount"
                                         x-text="'— ' + ing.amount + ' ' + (ing.unit || '')"
                                     ></span>
-                                    <span class="warn" x-show="!ing.in_stock">
+                                    <span class="warn" x-show="ing.matched && !ing.in_stock">
                                         · out of stock</span
                                     >
                                     <span class="warn" x-show="!ing.matched">

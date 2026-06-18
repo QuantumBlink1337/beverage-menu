@@ -159,6 +159,36 @@ class TestBuildResponseIngredients:
         assert ing.matched is False
         assert ing.in_stock is False
 
+    def test_auto_matches_by_grocy_product_name(self):
+        # No explicit mapping, but a Grocy product shares the ingredient's exact name.
+        drink = _seed_drink()
+        _seed_ingredient(drink, "Amaretto")
+        _seed_grocy_product()        # GrocyProduct id=1, name="Amaretto"
+        _seed_stock(amount=1.0)
+        # NOTE: no _seed_mapping()
+
+        result = _build_response(host_mode=True)
+        ing = result.crafted_drinks[0].ingredients[0]
+        assert ing.matched is True
+        assert ing.in_stock is True
+        assert result.crafted_drinks[0].unmatched_ingredients == []
+
+    def test_explicit_mapping_takes_precedence_over_name_match(self):
+        # Notion "Bourbon" is mapped to "Buffalo Trace" (id 2), even though a Grocy
+        # product literally named "Bourbon" (id 1) also exists. The mapping wins.
+        drink = _seed_drink()
+        _seed_ingredient(drink, "Bourbon")
+        GrocyProductGroup.create(id=1, name="Alcohol")
+        GrocyProduct.create(id=1, name="Bourbon", product_group_id=1)
+        GrocyProduct.create(id=2, name="Buffalo Trace", product_group_id=1)
+        _seed_stock(product_id=1, amount=0.0)   # literal "Bourbon" out of stock
+        _seed_stock(product_id=2, amount=1.0)   # "Buffalo Trace" in stock
+        IngredientMapping.create(notion_ingredient_name="Bourbon", grocy_product_id=2)
+
+        result = _build_response(host_mode=False)
+        # Followed the mapping to the in-stock Buffalo Trace → available.
+        assert result.crafted_drinks[0].available is True
+
 
 # ---------------------------------------------------------------------------
 # TestBuildResponseMethod
