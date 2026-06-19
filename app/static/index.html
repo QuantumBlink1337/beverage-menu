@@ -15,7 +15,7 @@
 
         <link rel="stylesheet" href="/style.css" />
     </head>
-    <body x-data="app()">
+    <body x-data="app()" x-cloak>
         <!-- Page banner -->
         <header>
             <img src="/logo.svg" alt="GOON Bar Logo" width="48" height="48" />
@@ -126,7 +126,10 @@
                                         x-show="ing.amount"
                                         x-text="'— ' + ing.amount + ' ' + (ing.unit || '')"
                                     ></span>
-                                    <span class="warn" x-show="ing.matched && !ing.in_stock">
+                                    <span
+                                        class="warn"
+                                        x-show="ing.matched && !ing.in_stock"
+                                    >
                                         · out of stock</span
                                     >
                                     <span class="warn" x-show="!ing.matched">

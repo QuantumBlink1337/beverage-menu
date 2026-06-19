@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 68 144 32">
+  <!-- Two wave lines lifted from logo.svg. Clipped to a clean rectangle so the
+       waves end flush at the left/right edges (matching the original logo). -->
+  <defs>
+    <clipPath id="wc">
+      <rect x="8" y="64" width="144" height="40"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#wc)">
+    <path d="M -1,76 C 5.7,71 10.3,71 17,76 C 23.7,81 28.3,81 35,76 C 41.7,71 46.3,71 53,76 C 59.7,81 64.3,81 71,76 C 77.7,71 82.3,71 89,76 C 95.7,81 100.3,81 107,76 C 113.7,71 118.3,71 125,76 C 131.7,81 136.3,81 143,76 C 149.7,71 154.3,71 161,76" stroke="#9D6638" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M -1,91 C 5.7,86 10.3,86 17,91 C 23.7,96 28.3,96 35,91 C 41.7,86 46.3,86 53,91 C 59.7,96 64.3,96 71,91 C 77.7,86 82.3,86 89,91 C 95.7,96 100.3,96 107,91 C 113.7,86 118.3,86 125,91 C 131.7,96 136.3,96 143,91 C 149.7,86 154.3,86 161,91" stroke="#9D6638" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
