@@ -58,19 +58,26 @@ body {
 header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: space-between;   /* wordmark left, waves right */
+    gap: 1rem;
     padding: 1rem 1.25rem;
     background: var(--sage);
-    color: var(--cream);
 }
-header img {
-    display: block;
-}
-header h1 {
+header .wordmark {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    line-height: 0;        /* the wordmark image IS the page heading */
+}
+header .wordmark img {
+    display: block;
+    height: 2.2rem;
+    width: auto;
+}
+header .waves {
+    display: block;
+    height: 2.75rem;
+    width: auto;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 /* ===========================================================================
