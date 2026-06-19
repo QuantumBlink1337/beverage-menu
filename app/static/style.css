@@ -165,7 +165,7 @@ article {
     border: 1px solid var(--sage);
     border-radius: var(--radius);
     padding: 1rem 1.1rem;
-    box-shadow: 0 1px 3px rgba(78, 34, 15, 0.08);
+    box-shadow: 0 2px 10px rgba(78, 34, 15, 0.1);
 }
 article h3 {
     margin: 0 0 0.35rem;
@@ -220,4 +220,23 @@ article > div p {
 .warn {
     color: var(--warn);
     font-weight: 600;
+}
+
+/* ===========================================================================
+   Mobile
+   =========================================================================== */
+@media (max-width: 600px) {
+    /* shrink the waves so the header isn't cramped beside the wordmark */
+    header .waves {
+        height: 1.6rem;
+    }
+    /* fade the right edge of the tab bar to hint it scrolls sideways */
+    nav {
+        -webkit-mask-image: linear-gradient(
+            to right,
+            #000 calc(100% - 28px),
+            transparent
+        );
+        mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    }
 }
