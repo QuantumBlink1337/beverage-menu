@@ -1,0 +1,19 @@
+/* ===========================================================================
+   Fonts
+   =========================================================================== */
+@font-face {
+  font-family: "ElmsSans";
+  /* static/ is mounted at URL root, so the font is served at /fonts/... */
+  src: url("/fonts/ElmsSans-VariableFont_wght.woff2") format("woff2");
+  font-weight: 100 900;   /* variable font: one file serves every weight */
+  font-display: swap;     /* show fallback text immediately, swap when loaded */
+}
+
+/* ===========================================================================
+   Base
+   =========================================================================== */
+body {
+  font-family: "ElmsSans", system-ui, -apple-system, sans-serif;
+}
+
+/* (Module 8 styling — palette, layout, card grid, sticky tabs — builds from here.) */
