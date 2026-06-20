@@ -1,7 +1,7 @@
 import os
 
 import httpx
-from models import NotionCraftedDrinkProperties, NotionIngredientRow, NotionPageContent
+from models import NotionCraftedDrinkProperties, NotionIngredientRow, NotionPageContent, Tag
 
 NOTION_API_BASE = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
@@ -115,7 +115,7 @@ class NotionClient:
             page_id=page["id"],
             name=properties["Name"]["title"][0]["plain_text"],
             glassware=glassware_select["name"] if glassware_select else None,
-            tags=[t["name"] for t in properties["Tags"]["multi_select"]],
+            tags=[Tag(name=t["name"], color=t["color"]) for t in properties["Tags"]["multi_select"]],
             equipment=[e["name"] for e in properties["Equipment"]["multi_select"]],
             notes="".join(r["plain_text"] for r in properties["Notes"]["rich_text"])
             or None,

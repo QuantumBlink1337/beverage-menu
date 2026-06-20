@@ -74,7 +74,7 @@ def _build_response(
     # Filter by tags if provided — include drinks whose tags intersect the filter.
     if tags:
         tag_set = set(tags)
-        db_drinks = [d for d in db_drinks if tag_set & set(d.tags)]
+        db_drinks = [d for d in db_drinks if tag_set & {t["name"] for t in d.tags}]
 
     crafted_drinks = []
     for db_drink in db_drinks:

@@ -2,6 +2,15 @@ from pydantic import BaseModel
 
 
 # ---------------------------------------------------------------------------
+# Shared
+# ---------------------------------------------------------------------------
+
+class Tag(BaseModel):
+    name: str
+    color: str = "default"  # Notion multi-select option color
+
+
+# ---------------------------------------------------------------------------
 # Grocy — internal parsing models
 # ---------------------------------------------------------------------------
 
@@ -57,7 +66,7 @@ class NotionCraftedDrinkProperties(BaseModel):
     page_id: str
     name: str
     glassware: str | None = None
-    tags: list[str] = []
+    tags: list[Tag] = []
     equipment: list[str] = []  # multi-select property on the drink page
     notes: str | None = None   # maps to "Notes" property — host mode only
     author: str | None = None
@@ -90,7 +99,7 @@ class CraftedDrink(BaseModel):
     id: str  # Notion page ID
     name: str
     glassware: str | None = None
-    tags: list[str] = []
+    tags: list[Tag] = []
     method: str | None = None
     available: bool
     ingredients: list[IngredientDetail] = []

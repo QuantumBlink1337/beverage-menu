@@ -35,7 +35,7 @@ def _seed_drink(notion_page_id="page-1", name="Amaretto Sour", glassware="Rocks"
         notion_page_id=notion_page_id,
         name=name,
         glassware=glassware,
-        tags=tags or ["NYE"],
+        tags=[{"name": t, "color": "default"} for t in (tags or ["NYE"])],
         equipment=equipment or [],
         method=method,
         notes=notes,

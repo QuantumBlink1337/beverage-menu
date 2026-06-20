@@ -22,8 +22,8 @@ def raw_drink_page():
             "Tags": {
                 "type": "multi_select",
                 "multi_select": [
-                    {"name": "NYE"},
-                    {"name": "Alcohol"}
+                    {"name": "NYE", "color": "blue"},
+                    {"name": "Alcohol", "color": "green"}
                 ]
             },
             "Equipment": {

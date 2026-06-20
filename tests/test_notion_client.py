@@ -20,7 +20,7 @@ class TestParseDrinkProperties:
         assert result.page_id == "3739babc-c3ed-80d1-9b43-c6f7731eb9be"
         assert result.name == "Amaretto Sour"
         assert result.glassware == "Rocks"
-        assert result.tags == ["NYE", "Alcohol"]
+        assert [(t.name, t.color) for t in result.tags] == [("NYE", "blue"), ("Alcohol", "green")]
         assert result.equipment == ["Cocktail Shaker", "Strainer"]
         assert result.notes == "Use cask-proof bourbon for best results."
         assert result.author == "Matt"
