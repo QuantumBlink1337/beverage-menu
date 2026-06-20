@@ -245,6 +245,49 @@ article h3 {
     color: var(--brown);
 }
 
+/* ===========================================================================
+   Decorative margin sprigs (desktop only, behind everything, non-interactive)
+   =========================================================================== */
+.decor {
+    position: fixed;
+    inset: 0;
+    z-index: -1; /* behind the page content, above the body background */
+    overflow: hidden;
+    pointer-events: none;
+}
+.leaf {
+    position: absolute;
+    width: 150px;
+    opacity: 0.3;
+    color: var(--sage);
+}
+.leaf-l1 {
+    top: 7rem;
+    left: -2.5rem;
+    transform: rotate(6deg);
+}
+.leaf-l2 {
+    bottom: 3rem;
+    left: -2rem;
+    transform: rotate(-150deg);
+}
+.leaf-r1 {
+    top: 10rem;
+    right: -2.5rem;
+    transform: rotate(-6deg) scaleX(-1);
+}
+.leaf-r2 {
+    bottom: 5rem;
+    right: -2rem;
+    transform: rotate(150deg) scaleX(-1);
+}
+/* no room for margin decoration on narrow screens */
+@media (max-width: 1000px) {
+    .decor {
+        display: none;
+    }
+}
+
 /* prep toggle (host) */
 article button {
     margin-top: 0.6rem;
