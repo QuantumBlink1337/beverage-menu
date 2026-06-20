@@ -151,7 +151,7 @@
                         <p class="ingredients" x-text="ingredientNames(c)"></p>
 
                         <!-- prep detail is host-only: guests don't need amounts/method/etc. -->
-                        <div class="tags classes" x-show="c.tags.length">
+                        <div class="tags classes" x-show="c.classes.length">
                             <template x-for="t in c.classes" :key="t.name">
                                 <span
                                     class="tag"
