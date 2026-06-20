@@ -67,6 +67,12 @@ class TestParseProduct:
         result = client.parse_product(raw_product_child)
         assert result.description is None
 
+    def test_strips_html_from_description(self, client, raw_product_child):
+        # Grocy stores descriptions as rich-text HTML.
+        raw_product_child["description"] = "<p>Four Hands Brewing Co, 7% ABV</p>"
+        result = client.parse_product(raw_product_child)
+        assert result.description == "Four Hands Brewing Co, 7% ABV"
+
     def test_ignores_extra_fields(self, client, raw_product_child):
         raw_product_child["qu_id_stock"] = 6
         result = client.parse_product(raw_product_child)

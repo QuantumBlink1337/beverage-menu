@@ -1,8 +1,18 @@
+import html
 import os
+import re
 from collections import defaultdict
 
 import httpx
 from models import GrocyProduct, GrocyProductGroup, GrocyStockEntry
+
+
+def _strip_html(text: str | None) -> str | None:
+    """Grocy stores the description as rich-text HTML; flatten it to plain text."""
+    if not text:
+        return None
+    plain = html.unescape(re.sub(r"<[^>]+>", " ", text))
+    return re.sub(r"\s+", " ", plain).strip() or None
 
 
 class GrocyClient:
@@ -107,7 +117,7 @@ class GrocyClient:
             product_group_id=raw.get("product_group_id"),
             parent_product_id=raw.get("parent_product_id"),
             no_own_stock=bool(raw.get("no_own_stock", 0)),
-            description=raw.get("description") or None,
+            description=_strip_html(raw.get("description")),
         )
 
     def aggregate_stock(
