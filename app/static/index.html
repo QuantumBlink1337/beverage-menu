@@ -56,28 +56,35 @@
                         x-for="product in group.products"
                         :key="product.id"
                     >
-                        <article>
+                        <article class="beverage">
                             <h3 x-text="product.name"></h3>
 
                             <!-- host-only stock line -->
                             <p
+                                class="stock"
                                 x-show="hostMode && product.amount !== null"
                                 x-text="product.amount + ' ' + product.unit"
                             ></p>
 
-                            <!-- variants (children), e.g. High Noon flavors -->
-                            <template
-                                x-for="child in product.children"
-                                :key="child.id"
+                            <!-- variants (children), e.g. High Noon flavors —
+                                 divider only appears when there are variants -->
+                            <div
+                                class="variants"
+                                x-show="product.children.length"
                             >
-                                <p>
-                                    <span x-text="child.name"></span>
-                                    <span
-                                        x-show="hostMode"
-                                        x-text="'· ' + child.amount + ' ' + child.unit"
-                                    ></span>
-                                </p>
-                            </template>
+                                <template
+                                    x-for="child in product.children"
+                                    :key="child.id"
+                                >
+                                    <p class="variant">
+                                        <span x-text="child.name"></span>
+                                        <span
+                                            x-show="hostMode"
+                                            x-text="'· ' + child.amount + ' ' + child.unit"
+                                        ></span>
+                                    </p>
+                                </template>
+                            </div>
                         </article>
                     </template>
                 </section>
@@ -91,17 +98,23 @@
                 <h2 id="cocktails-heading">Cocktails</h2>
 
                 <template x-for="c in visibleCocktails" :key="c.id">
-                    <article>
-                        <h3 x-text="c.name"></h3>
+                    <article class="cocktail">
+                        <div class="card-head">
+                            <h3 x-text="c.name"></h3>
+                            <div class="tags" x-show="c.tags.length">
+                                <template x-for="t in c.tags" :key="t.name">
+                                    <span
+                                        class="tag"
+                                        :style="tagStyle(t)"
+                                        x-text="t.name"
+                                    ></span>
+                                </template>
+                            </div>
+                        </div>
                         <!-- host-only: flag cocktails that can't be made right now -->
                         <p class="warn" x-show="hostMode && !c.available">
                             Unavailable — missing ingredients
                         </p>
-                        <p
-                            class="tags"
-                            x-show="c.tags.length"
-                            x-text="c.tags.join(' · ')"
-                        ></p>
 
                         <!-- menu-style ingredient prose, shown to everyone (names only, no quantities) -->
                         <p class="ingredients" x-text="ingredientNames(c)"></p>
@@ -115,29 +128,37 @@
                             x-text="isExpanded(c.id) ? 'Hide prep' : 'Prep details'"
                         ></button>
 
-                        <div x-show="hostMode && isExpanded(c.id)">
-                            <!-- full ingredient breakdown with amounts + stock flags (host prep view) -->
-                            <template
-                                x-for="ing in c.ingredients"
-                                :key="ing.ingredient"
-                            >
-                                <p>
-                                    <span x-text="ing.ingredient"></span>
-                                    <span
-                                        x-show="ing.amount"
-                                        x-text="'— ' + ing.amount + ' ' + (ing.unit || '')"
-                                    ></span>
-                                    <span
-                                        class="warn"
-                                        x-show="ing.matched && !ing.in_stock"
-                                    >
-                                        · out of stock</span
-                                    >
-                                    <span class="warn" x-show="!ing.matched">
-                                        · unmatched</span
-                                    >
-                                </p>
-                            </template>
+                        <div class="prep" x-show="hostMode && isExpanded(c.id)">
+                            <!-- ingredient breakdown — aligned columns -->
+                            <div class="prep-ingredients">
+                                <template
+                                    x-for="ing in c.ingredients"
+                                    :key="ing.ingredient"
+                                >
+                                    <div class="prep-row">
+                                        <span
+                                            class="ing-name"
+                                            x-text="ing.ingredient"
+                                        ></span>
+                                        <span
+                                            class="ing-amt"
+                                            x-text="ing.amount ? ing.amount + ' ' + (ing.unit || '') : ''"
+                                        ></span>
+                                        <span class="ing-flags">
+                                            <span
+                                                class="warn"
+                                                x-show="ing.matched && !ing.in_stock"
+                                                >out of stock</span
+                                            >
+                                            <span
+                                                class="warn"
+                                                x-show="!ing.matched"
+                                                >unmatched</span
+                                            >
+                                        </span>
+                                    </div>
+                                </template>
+                            </div>
 
                             <p x-show="c.method">
                                 <strong>Method:</strong>
