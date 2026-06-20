@@ -41,6 +41,9 @@
 
 body {
     margin: 0;
+    min-height: 100vh;        /* at least a full viewport tall */
+    display: flex;
+    flex-direction: column;   /* header · nav · main · footer stacked */
     font-family:
         "ElmsSans",
         system-ui,
@@ -127,8 +130,10 @@ nav button.active {
    Main layout
    =========================================================================== */
 main {
+    flex: 1;                  /* grow to fill the slack, pushing the footer down */
+    width: 100%;
     max-width: var(--maxw);
-    margin: 0 auto;
+    margin: 0 auto;           /* auto side-margins still center it in the flex column */
     padding: 1.25rem;
 }
 
@@ -283,4 +288,17 @@ article button:hover {
         );
         mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
     }
+}
+
+/* ===========================================================================
+   Footer
+   =========================================================================== */
+footer {
+    text-align: center;
+    padding: 1.5rem 1rem 2.5rem;
+    font-size: 0.8rem;
+    color: var(--brown);
+}
+footer a {
+    color: inherit;
 }
