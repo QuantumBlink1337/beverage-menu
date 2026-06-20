@@ -1,0 +1,56 @@
+# Keep the build context (and thus the image) lean and secret-free.
+# NOTE: the build still needs requirements.txt and the app/ tree; everything
+# below is either dev-only, regenerable, or sensitive.
+
+# Version control
+.git
+.gitignore
+
+# Virtual environments
+.venv
+venv
+env
+ENV
+
+# Python caches / bytecode
+__pycache__
+**/__pycache__
+*.py[codz]
+*$py.class
+
+# Tooling caches
+.pytest_cache
+**/.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+
+# Tests and planning docs — not needed at runtime
+tests
+plans
+
+# Secrets — never bake into the image (provided at runtime via env_file)
+.env
+app/.env
+.env.*
+!.env.example
+
+# Local SQLite DB — must come from the named volume, not the build context
+app/beverage.db
+*.db
+*.sqlite3
+
+# Local exploration / scratch scripts
+app/grocy_explore.py
+app/notion_explore.py
+
+# Editor / OS cruft
+.vscode
+.idea
+.DS_Store
+
+# Docker / compose files themselves
+Dockerfile
+.dockerignore
+docker-compose.yml

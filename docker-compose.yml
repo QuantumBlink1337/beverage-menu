@@ -1,0 +1,55 @@
+# GOON Beverage Site — production compose.
+#
+# Run from the repo root on the Nucleus host:  docker compose up -d --build
+#
+# The app sits on an EXTERNAL `proxy` network shared with Nginx Proxy Manager
+# (NPM). NPM reaches it as http://beverage-menu:8000 over that network, so we do
+# NOT publish a host port by default (see the commented `ports:` block if you
+# need direct host access for debugging or a Tailscale sidecar).
+
+services:
+  beverage-menu:
+    build: .
+    image: goon-beverage-site:latest
+    container_name: beverage-menu
+    restart: unless-stopped
+
+    # Secrets come from a .env file at the repo root (gitignored). It must define
+    # GROCY_URL, GROCY_API_KEY, NOTION_API_KEY, NOTION_CRAFTED_DRINKS_DB_ID.
+    # See .env.example.
+    env_file: .env
+
+    # DB_PATH is set here (not in .env) so it always points at the mounted
+    # volume regardless of what a copied .env happens to contain.
+    environment:
+      DB_PATH: /data/beverage.db
+
+    # Persist the SQLite cache/mappings DB across rebuilds and restarts.
+    volumes:
+      - beverage-db:/data
+
+    networks:
+      - proxy
+
+    # Uncomment ONLY for direct host access (debugging, or if NPM is not on the
+    # proxy network). Not needed when NPM proxies over the Docker network.
+    # ports:
+    #   - "8000:8000"
+
+    # Lightweight liveness check. `/api/beverages` triggers the Grocy cache
+    # refresh, so we probe the static root instead to avoid hammering Grocy.
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  beverage-db:
+
+networks:
+  # Created once on the host:  docker network create proxy
+  # Shared with the Nginx Proxy Manager stack.
+  proxy:
+    external: true
