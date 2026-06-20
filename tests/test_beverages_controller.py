@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from peewee import SqliteDatabase
 
-from controllers.beverages import _build_response, _variant_name, get_beverages
+from controllers.beverages import _build_response, _refresh, _variant_name, get_beverages
 from db import (
     CacheStatus,
     GrocyProduct,
@@ -227,3 +227,33 @@ class TestGetBeverages:
         with patch("controllers.beverages._refresh", new=AsyncMock()) as mock_refresh:
             await get_beverages()
         mock_refresh.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# TestRefreshHardening
+# ---------------------------------------------------------------------------
+
+class TestRefreshHardening:
+    @pytest.mark.asyncio
+    async def test_refresh_nulls_dangling_group_reference(self):
+        # A product assigned to a group that no longer exists in Grocy must not crash
+        # the refresh on the FK constraint (the cold-start bug the smoke test caught).
+        from models import (
+            GrocyProduct as PGrocyProduct,
+            GrocyProductGroup as PGrocyProductGroup,
+        )
+
+        client = AsyncMock()
+        client.get_product_groups = AsyncMock(
+            return_value=[PGrocyProductGroup(id=2, name="Beer")]
+        )
+        client.get_products = AsyncMock(
+            return_value=[PGrocyProduct(id=1, name="High Noon", product_group_id=99)]
+        )  # group 99 no longer exists
+        client.get_stock = AsyncMock(return_value=[])
+
+        with patch("controllers.beverages.GrocyClient", return_value=client):
+            await _refresh()  # must not raise IntegrityError
+
+        stored = GrocyProduct.get(GrocyProduct.id == 1)
+        assert stored.product_group_id is None
