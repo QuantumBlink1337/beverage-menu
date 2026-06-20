@@ -18,11 +18,12 @@ const GROUP_TABS = {
   Tea: ["coffee-tea", "non-alcoholic"],
   THC: ["thc"], // finished THC drinks — featured + THC tab
   THCMixer: ["thc", "liquor"], // THC spirit — THC tab + Bar Stock, hidden from Featured
+  Mixers: ["liquor"],
 };
 
 // Groups kept off the "Featured" overview (deep-cut / ingredient bottles),
 // still browsable on their own tab.
-const DRILLDOWN_ONLY = new Set(["Liqueors", "NA", "THCMixer"]);
+const DRILLDOWN_ONLY = new Set(["Liqueors", "NA", "THCMixer", "Mixers"]);
 
 // Notion multi-select option colors → palette-harmonized pill colors.
 const TAG_COLORS = {
@@ -196,7 +197,8 @@ function app() {
           fetch("/api/beverages/refresh", { method: "POST" }),
           fetch("/api/crafted_drinks/refresh", { method: "POST" }),
         ]);
-        this.refreshMessage = "Refreshing in the background — reload in a moment.";
+        this.refreshMessage =
+          "Refreshing in the background — reload in a moment.";
       } finally {
         this.refreshing = false;
       }
