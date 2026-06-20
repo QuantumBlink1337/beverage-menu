@@ -189,6 +189,48 @@ class TestBuildResponseIngredients:
         # Followed the mapping to the in-stock Buffalo Trace → available.
         assert result.crafted_drinks[0].available is True
 
+    def test_matches_by_product_group(self):
+        # A generic "Bourbon" ingredient matches any product in the "Bourbon" group,
+        # and is in stock if any one bottle is.
+        drink = _seed_drink()
+        _seed_ingredient(drink, "Bourbon")
+        GrocyProductGroup.create(id=2, name="Bourbon")
+        GrocyProduct.create(id=10, name="Buffalo Trace", product_group_id=2)
+        GrocyProduct.create(id=11, name="Maker's Mark", product_group_id=2)
+        _seed_stock(product_id=11, amount=1.0)  # only one bottle in stock — enough
+
+        result = _build_response(host_mode=True)
+        ing = result.crafted_drinks[0].ingredients[0]
+        assert ing.matched is True
+        assert ing.in_stock is True
+        assert result.crafted_drinks[0].available is True
+
+    def test_group_match_unavailable_when_no_bottle_in_stock(self):
+        drink = _seed_drink()
+        _seed_ingredient(drink, "Bourbon")
+        GrocyProductGroup.create(id=2, name="Bourbon")
+        GrocyProduct.create(id=10, name="Buffalo Trace", product_group_id=2)
+        # no stock for any bottle in the group
+
+        result = _build_response(host_mode=False)
+        ing = result.crafted_drinks[0].ingredients[0]
+        assert ing.matched is True
+        assert ing.in_stock is False
+        assert result.crafted_drinks[0].available is False
+
+    def test_matching_is_case_and_whitespace_insensitive(self):
+        # Notion ingredient " bourbon " matches the "Bourbon" group regardless of case/spaces.
+        drink = _seed_drink()
+        _seed_ingredient(drink, " bourbon ")
+        GrocyProductGroup.create(id=2, name="Bourbon")
+        GrocyProduct.create(id=10, name="Buffalo Trace", product_group_id=2)
+        _seed_stock(product_id=10, amount=1.0)
+
+        result = _build_response(host_mode=True)
+        ing = result.crafted_drinks[0].ingredients[0]
+        assert ing.matched is True
+        assert ing.in_stock is True
+
 
 # ---------------------------------------------------------------------------
 # TestBuildResponseMethod

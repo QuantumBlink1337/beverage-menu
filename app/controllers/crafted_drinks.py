@@ -1,9 +1,11 @@
 import asyncio
+from collections import defaultdict
 
 from db import (
     CacheStatus,
     CraftedDrink as DBCraftedDrink,
     GrocyProduct,
+    GrocyProductGroup,
     GrocyStockEntry,
     IngredientMapping,
 )
@@ -12,6 +14,11 @@ from notion_client import NotionClient
 
 # Notion API rate limit: 3 requests/second.
 _NOTION_SEMAPHORE = asyncio.Semaphore(3)
+
+
+def _norm(s: str) -> str:
+    """Normalize a name for case/whitespace-insensitive ingredient matching."""
+    return s.strip().lower()
 
 
 async def get_crafted_drinks(
@@ -58,16 +65,25 @@ def _build_response(
         e.product_id for e in GrocyStockEntry.select() if e.amount > 0
     }
 
+    # All match keys are normalized (case/whitespace-insensitive) — see _norm.
     ingredient_map: dict[str, int] = {
-        m.notion_ingredient_name: m.grocy_product_id
+        _norm(m.notion_ingredient_name): m.grocy_product_id
         for m in IngredientMapping.select()
     }
 
-    # Fallback: auto-match when a Notion ingredient name exactly equals a Grocy
-    # product name. The explicit mapping above always takes precedence.
+    # Fallback: auto-match when a Notion ingredient name equals a Grocy product
+    # name. The explicit mapping above always takes precedence.
     grocy_by_name: dict[str, int] = {
-        p.name: p.id for p in GrocyProduct.select()
+        _norm(p.name): p.id for p in GrocyProduct.select()
     }
+
+    # Group fallback: a generic ingredient (e.g. "Bourbon") matches any product in
+    # the group of that name, and is in stock if ANY of those products is.
+    group_name_by_id = {g.id: g.name for g in GrocyProductGroup.select()}
+    group_products: dict[str, list[int]] = defaultdict(list)
+    for p in GrocyProduct.select():
+        if p.product_group_id in group_name_by_id:
+            group_products[_norm(group_name_by_id[p.product_group_id])].append(p.id)
 
     db_drinks = list(DBCraftedDrink.select())
 
@@ -83,30 +99,33 @@ def _build_response(
         all_matched_in_stock = True
 
         for ing in db_drink.ingredients:
-            # Explicit mapping wins; fall back to an exact Grocy product-name match.
-            grocy_product_id = ingredient_map.get(ing.ingredient)
-            if grocy_product_id is None:
-                grocy_product_id = grocy_by_name.get(ing.ingredient)
-            if grocy_product_id is None:
-                unmatched.append(ing.ingredient)
-                ingredients.append(IngredientDetail(
-                    ingredient=ing.ingredient,
-                    amount=ing.amount,
-                    unit=ing.unit,
-                    in_stock=False,
-                    matched=False,
-                ))
+            # Precedence: explicit mapping → exact product name → product group.
+            # Matching is case/whitespace-insensitive (normalized key).
+            key = _norm(ing.ingredient)
+            pid = ingredient_map.get(key)
+            if pid is None:
+                pid = grocy_by_name.get(key)
+
+            if pid is not None:                       # matched a specific bottle
+                matched, in_stock = True, pid in in_stock_ids
+            elif key in group_products:               # matched a group → any bottle counts
+                matched = True
+                in_stock = any(p in in_stock_ids for p in group_products[key])
             else:
-                in_stock = grocy_product_id in in_stock_ids
-                if not in_stock:
-                    all_matched_in_stock = False
-                ingredients.append(IngredientDetail(
-                    ingredient=ing.ingredient,
-                    amount=ing.amount,
-                    unit=ing.unit,
-                    in_stock=in_stock,
-                    matched=True,
-                ))
+                matched, in_stock = False, False
+
+            if not matched:
+                unmatched.append(ing.ingredient)
+            elif not in_stock:
+                all_matched_in_stock = False
+
+            ingredients.append(IngredientDetail(
+                ingredient=ing.ingredient,
+                amount=ing.amount,
+                unit=ing.unit,
+                in_stock=in_stock,
+                matched=matched,
+            ))
 
         crafted_drinks.append(CraftedDrink(
             id=db_drink.notion_page_id,
