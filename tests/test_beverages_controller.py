@@ -93,21 +93,14 @@ class TestBuildResponseStandalone:
         result = _build_response(host_mode=False)
         assert result.groups == []
 
-    def test_serving_notes_hidden_in_guest_mode(self):
+    def test_description_shown_to_guests(self):
+        # Grocy description is now a guest-visible blurb, not host-only.
         _seed_group()
-        _seed_product(id=1, name="Buffalo Trace", description="Serve neat")
+        _seed_product(id=1, name="Lager", description="Four Hands Brewing, 6% ABV")
         _seed_stock(product_id=1, amount=1.0)
 
         result = _build_response(host_mode=False)
-        assert result.groups[0].products[0].serving_notes is None
-
-    def test_serving_notes_shown_in_host_mode(self):
-        _seed_group()
-        _seed_product(id=1, name="Buffalo Trace", description="Serve neat")
-        _seed_stock(product_id=1, amount=1.0)
-
-        result = _build_response(host_mode=True)
-        assert result.groups[0].products[0].serving_notes == "Serve neat"
+        assert result.groups[0].products[0].description == "Four Hands Brewing, 6% ABV"
 
     def test_products_sorted_by_name(self):
         _seed_group()

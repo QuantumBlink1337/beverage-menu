@@ -89,7 +89,7 @@ def _build_response(host_mode: bool) -> BeveragesResponse:
                 amount=entry.amount,
                 unit=entry.stock_unit_name,
                 location=entry.location_name,
-                serving_notes=product.description if host_mode else None,
+                description=product.description,
             )
         )
 
@@ -104,7 +104,6 @@ def _build_response(host_mode: bool) -> BeveragesResponse:
                 amount=stock_map[child.id].amount,
                 unit=stock_map[child.id].stock_unit_name,
                 location=stock_map[child.id].location_name,
-                serving_notes=child.description if host_mode else None,
             )
             for child in sorted(children, key=lambda c: c.name)
         ]
@@ -112,7 +111,7 @@ def _build_response(host_mode: bool) -> BeveragesResponse:
             Product(
                 id=parent.id,
                 name=parent.name,
-                serving_notes=parent.description if host_mode else None,
+                description=parent.description,
                 children=child_products,
             )
         )

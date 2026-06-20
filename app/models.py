@@ -45,7 +45,7 @@ class Product(BaseModel):
     amount: float | None = None       # None for parent products
     unit: str | None = None
     location: str | None = None
-    serving_notes: str | None = None  # host mode only
+    description: str | None = None     # guest-visible blurb (from Grocy's description field)
     children: list["Product"] = []    # empty for standalone products
 
 
