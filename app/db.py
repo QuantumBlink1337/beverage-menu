@@ -19,8 +19,15 @@ database = DatabaseProxy()
 def init_db(db) -> None:
     database.initialize(db)
     db.create_tables(
-        [CacheStatus, GrocyProductGroup, GrocyProduct, GrocyStockEntry,
-         CraftedDrink, CraftedDrinkIngredient, IngredientMapping],
+        [
+            CacheStatus,
+            GrocyProductGroup,
+            GrocyProduct,
+            GrocyStockEntry,
+            CraftedDrink,
+            CraftedDrinkIngredient,
+            IngredientMapping,
+        ],
         safe=True,
     )
 
@@ -57,9 +64,13 @@ class CacheStatus(BaseModel):
     @classmethod
     def _mark_refreshed(cls, cache_key: str) -> None:
         now = datetime.now(timezone.utc).isoformat()
-        (cls.insert(cache_key=cache_key, last_refreshed_at=now)
-            .on_conflict(conflict_target=[cls.cache_key], preserve=[cls.last_refreshed_at])
-            .execute())
+        (
+            cls.insert(cache_key=cache_key, last_refreshed_at=now)
+            .on_conflict(
+                conflict_target=[cls.cache_key], preserve=[cls.last_refreshed_at]
+            )
+            .execute()
+        )
 
     @classmethod
     def is_recipe_stale(cls, ttl_hours: int = 12) -> bool:
@@ -133,6 +144,7 @@ class CraftedDrink(BaseModel):
     notion_page_id = CharField(primary_key=True)
     name = CharField()
     glassware = CharField(null=True)
+    classes = JSONListField()
     tags = JSONListField()
     equipment = JSONListField()
     method = TextField(null=True)

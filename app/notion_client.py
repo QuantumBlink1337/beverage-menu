@@ -1,7 +1,12 @@
 import os
 
 import httpx
-from models import NotionCraftedDrinkProperties, NotionIngredientRow, NotionPageContent, Tag
+from models import (
+    NotionCraftedDrinkProperties,
+    NotionIngredientRow,
+    NotionPageContent,
+    Tag,
+)
 
 NOTION_API_BASE = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
@@ -104,7 +109,7 @@ class NotionClient:
         rows = await self._fetch_database_rows(database_id)
         return [self.parse_ingredient_row(row) for row in rows]
 
-# ---------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------
     # Parsing helpers
     # ---------------------------------------------------------------------------
 
@@ -115,7 +120,14 @@ class NotionClient:
             page_id=page["id"],
             name=properties["Name"]["title"][0]["plain_text"],
             glassware=glassware_select["name"] if glassware_select else None,
-            tags=[Tag(name=t["name"], color=t["color"]) for t in properties["Tags"]["multi_select"]],
+            classes=[
+                Tag(name=t["name"], color=t["color"])
+                for t in properties["Class"]["multi_select"]
+            ],
+            tags=[
+                Tag(name=t["name"], color=t["color"])
+                for t in properties["Tags"]["multi_select"]
+            ],
             equipment=[e["name"] for e in properties["Equipment"]["multi_select"]],
             notes="".join(r["plain_text"] for r in properties["Notes"]["rich_text"])
             or None,
@@ -149,4 +161,3 @@ class NotionClient:
             amount=props["Amount"]["number"],
             unit=unit_select["name"] if unit_select else None,
         )
-

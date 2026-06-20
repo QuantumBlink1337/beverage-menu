@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
-
 # ---------------------------------------------------------------------------
 # Shared
 # ---------------------------------------------------------------------------
+
 
 class Tag(BaseModel):
     name: str
@@ -13,6 +13,7 @@ class Tag(BaseModel):
 # ---------------------------------------------------------------------------
 # Grocy — internal parsing models
 # ---------------------------------------------------------------------------
+
 
 class GrocyProductGroup(BaseModel):
     id: int
@@ -39,14 +40,17 @@ class GrocyStockEntry(BaseModel):
 # API response models — Beverages
 # ---------------------------------------------------------------------------
 
+
 class Product(BaseModel):
     id: int
     name: str
-    amount: float | None = None       # None for parent products
+    amount: float | None = None  # None for parent products
     unit: str | None = None
     location: str | None = None
-    description: str | None = None     # guest-visible blurb (from Grocy's description field)
-    children: list["Product"] = []    # empty for standalone products
+    description: str | None = (
+        None  # guest-visible blurb (from Grocy's description field)
+    )
+    children: list["Product"] = []  # empty for standalone products
 
 
 class BeverageGroup(BaseModel):
@@ -62,18 +66,20 @@ class BeveragesResponse(BaseModel):
 # Notion — internal parsing models
 # ---------------------------------------------------------------------------
 
+
 class NotionCraftedDrinkProperties(BaseModel):
     page_id: str
     name: str
     glassware: str | None = None
+    classes: list[Tag] = []
     tags: list[Tag] = []
     equipment: list[str] = []  # multi-select property on the drink page
-    notes: str | None = None   # maps to "Notes" property — host mode only
+    notes: str | None = None  # maps to "Notes" property — host mode only
     author: str | None = None
 
 
 class NotionPageContent(BaseModel):
-    db_ids: dict[str, str]   # e.g. {"Ingredients": "..."}
+    db_ids: dict[str, str]  # e.g. {"Ingredients": "..."}
     method: str | None = None
 
 
@@ -87,6 +93,7 @@ class NotionIngredientRow(BaseModel):
 # API response models — Crafted Drinks
 # ---------------------------------------------------------------------------
 
+
 class IngredientDetail(BaseModel):
     ingredient: str
     amount: float | None = None
@@ -99,13 +106,14 @@ class CraftedDrink(BaseModel):
     id: str  # Notion page ID
     name: str
     glassware: str | None = None
+    classes: list[Tag] = []
     tags: list[Tag] = []
     method: str | None = None
     available: bool
     ingredients: list[IngredientDetail] = []
     equipment: list[str] = []
-    host_notes: str | None = None          # host mode only
-    author: str | None = None              # host mode only
+    host_notes: str | None = None  # host mode only
+    author: str | None = None  # host mode only
     unmatched_ingredients: list[str] = []  # host mode only
 
 
@@ -116,6 +124,7 @@ class CraftedDrinksResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # API response models — Ingredient Mappings (host mode only)
 # ---------------------------------------------------------------------------
+
 
 class MappingEntry(BaseModel):
     id: int
