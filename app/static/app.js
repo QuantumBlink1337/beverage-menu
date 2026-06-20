@@ -54,6 +54,10 @@ function app() {
     hostMode: false,
     mappings: [],
 
+    // host "Refresh data" button
+    refreshing: false,
+    refreshMessage: "",
+
     categories: [
       { id: "all", label: "Featured" },
       { id: "beer-wine", label: "Beer & Wine" },
@@ -181,6 +185,21 @@ function app() {
     tagStyle(tag) {
       const c = TAG_COLORS[tag.color] || TAG_COLORS.default;
       return `background:${c.bg}; color:${c.fg}`;
+    },
+
+    // Host: force a Grocy + Notion cache refresh (both run server-side, in the background).
+    async refreshData() {
+      this.refreshing = true;
+      this.refreshMessage = "";
+      try {
+        await Promise.allSettled([
+          fetch("/api/beverages/refresh", { method: "POST" }),
+          fetch("/api/crafted_drinks/refresh", { method: "POST" }),
+        ]);
+        this.refreshMessage = "Refreshing in the background — reload in a moment.";
+      } finally {
+        this.refreshing = false;
+      }
     },
   };
 }

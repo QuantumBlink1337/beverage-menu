@@ -4,6 +4,8 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>GOON Bar</title>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
 
         <!-- 1st: defines app() globally  (static/ is mounted at URL root, so no /static prefix) -->
         <script src="/app.js"></script>
@@ -19,6 +21,19 @@
         <!-- Page banner: wordmark left, waves right -->
         <header>
             <h1 class="wordmark"><img src="/goon_text.svg" alt="GOON" /></h1>
+            <div class="host-bar" x-show="hostMode">
+                <span
+                    class="host-msg"
+                    x-show="refreshMessage"
+                    x-text="refreshMessage"
+                ></span>
+                <button
+                    type="button"
+                    @click="refreshData()"
+                    :disabled="refreshing"
+                    x-text="refreshing ? 'Refreshing…' : 'Refresh data'"
+                ></button>
+            </div>
             <img class="waves" src="/goon-waves.svg" alt="" />
         </header>
 
@@ -35,6 +50,8 @@
         </nav>
 
         <main>
+            <!-- host-only data refresh control -->
+
             <!-- async status messages (Module 4 per-source status) -->
             <p
                 x-show="beverageStatus === 'loading' || cocktailStatus === 'loading'"
@@ -58,6 +75,11 @@
                     >
                         <article class="beverage">
                             <h3 x-text="product.name"></h3>
+                            <p
+                                class="description"
+                                x-show="product.description"
+                                x-text="product.description"
+                            ></p>
 
                             <!-- host-only stock line -->
                             <p

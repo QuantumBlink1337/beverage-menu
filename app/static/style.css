@@ -41,9 +41,9 @@
 
 body {
     margin: 0;
-    min-height: 100vh;        /* at least a full viewport tall */
+    min-height: 100vh; /* at least a full viewport tall */
     display: flex;
-    flex-direction: column;   /* header · nav · main · footer stacked */
+    flex-direction: column; /* header · nav · main · footer stacked */
     font-family:
         "ElmsSans",
         system-ui,
@@ -61,14 +61,15 @@ body {
 header {
     display: flex;
     align-items: center;
-    justify-content: space-between;   /* wordmark left, waves right */
+    justify-content: space-between; /* wordmark left, waves right */
     gap: 1rem;
     padding: 1rem 1.25rem;
     background: var(--sage);
 }
 header .wordmark {
     margin: 0;
-    line-height: 0;        /* the wordmark image IS the page heading */
+    margin-right: auto;
+    line-height: 0; /* the wordmark image IS the page heading */
 }
 header .wordmark img {
     display: block;
@@ -130,10 +131,10 @@ nav button.active {
    Main layout
    =========================================================================== */
 main {
-    flex: 1;                  /* grow to fill the slack, pushing the footer down */
+    flex: 1; /* grow to fill the slack, pushing the footer down */
     width: 100%;
     max-width: var(--maxw);
-    margin: 0 auto;           /* auto side-margins still center it in the flex column */
+    margin: 0 auto; /* auto side-margins still center it in the flex column */
     padding: 1.25rem;
 }
 
@@ -211,6 +212,39 @@ article h3 {
     color: var(--dark-brown);
 }
 
+/* beverage description blurb (guest-visible) */
+.description {
+    margin: 0 0 0.4rem;
+    font-size: 0.9rem;
+    color: var(--dark-brown);
+}
+
+/* host data-refresh control */
+.host-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    /*margin-bottom: 1rem;*/
+}
+.host-bar button {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--brown);
+    border-radius: 999px;
+    background: var(--dark-brown);
+    color: var(--cream);
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.host-bar button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.host-msg {
+    font-size: 0.85rem;
+    color: var(--brown);
+}
+
 /* prep toggle (host) */
 article button {
     margin-top: 0.6rem;
@@ -286,7 +320,11 @@ article button:hover {
             #000 calc(100% - 28px),
             transparent
         );
-        mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+        mask-image: linear-gradient(
+            to right,
+            #000 calc(100% - 28px),
+            transparent
+        );
     }
 }
 
