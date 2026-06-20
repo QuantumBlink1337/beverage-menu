@@ -53,6 +53,7 @@ body {
     background: var(--cream);
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
+    cursor: default;
 }
 
 /* ===========================================================================
@@ -143,9 +144,17 @@ main > section {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: var(--gap);
-    align-items: start;
+    /*align-items: stretch;*/
     margin-bottom: 2rem;
 }
+
+main > section[aria-labelledby="cocktails-heading"] {
+    align-items: stretch;
+}
+main > section[aria-labelledby="cocktails-heading"].expanded {
+    align-items: start;
+}
+
 main > section > h2 {
     grid-column: 1 / -1; /* heading spans the full row */
     margin: 0 0 0.25rem;
@@ -189,6 +198,8 @@ article h3 {
 }
 .card-head h3 {
     margin: 0;
+    flex: 1 auto;
+    min-width: 0;
 }
 .tags {
     display: flex;
@@ -217,6 +228,18 @@ article h3 {
     margin: 0 0 0.4rem;
     font-size: 0.8rem;
     color: var(--brown);
+}
+.card-foot {
+    margin-top: auto; /* the whole bar drops to the bottom */
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* pills pin right */
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+.card-foot button {
+    margin-right: auto; /* button hugs left, pills get pushed right */
+    margin-top: 0; /* cancel the article button's top margin */
 }
 
 /* host data-refresh control */
@@ -302,6 +325,19 @@ article button {
 }
 article button:hover {
     background: rgba(157, 102, 56, 0.1);
+}
+
+article.cocktail {
+    display: flex;
+    flex-direction: column;
+    min-height: 150px; /* Stage 2 floor — gives the row room to drop to */
+}
+.classes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    justify-content: flex-end; /* right */
+    margin-top: auto; /* bottom: eat the slack above */
 }
 
 /* expanded host prep detail */

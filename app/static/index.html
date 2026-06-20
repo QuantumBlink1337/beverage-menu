@@ -124,6 +124,7 @@
             <section
                 x-show="visibleCocktails.length"
                 aria-labelledby="cocktails-heading"
+                :class="{ expanded: expandedCocktailIds.length  }"
             >
                 <h2 id="cocktails-heading">Cocktails</h2>
 
@@ -150,6 +151,15 @@
                         <p class="ingredients" x-text="ingredientNames(c)"></p>
 
                         <!-- prep detail is host-only: guests don't need amounts/method/etc. -->
+                        <div class="tags classes" x-show="c.tags.length">
+                            <template x-for="t in c.classes" :key="t.name">
+                                <span
+                                    class="tag"
+                                    :style="tagStyle(t)"
+                                    x-text="t.name"
+                                ></span>
+                            </template>
+                        </div>
                         <button
                             type="button"
                             x-show="hostMode"

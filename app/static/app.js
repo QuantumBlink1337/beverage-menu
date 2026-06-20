@@ -117,13 +117,13 @@ function app() {
           return base;
         case "non-alcoholic":
           return base.filter((c) =>
-            c.tags.some((t) =>
+            c.classes.some((t) =>
               ["Non-Alcoholic", "Mocktail", "NA"].includes(t.name),
             ),
           );
         case "thc":
           return base.filter((c) =>
-            c.tags.some((t) => ["THC", "Cannabis"].includes(t.name)),
+            c.classes.some((t) => ["THC", "Cannabis"].includes(t.name)),
           );
         default:
           return []; // beverage-only tabs show no cocktails

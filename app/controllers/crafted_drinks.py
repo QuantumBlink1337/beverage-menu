@@ -3,11 +3,13 @@ from collections import defaultdict
 
 from db import (
     CacheStatus,
-    CraftedDrink as DBCraftedDrink,
     GrocyProduct,
     GrocyProductGroup,
     GrocyStockEntry,
     IngredientMapping,
+)
+from db import (
+    CraftedDrink as DBCraftedDrink,
 )
 from models import CraftedDrink, CraftedDrinksResponse, IngredientDetail
 from notion_client import NotionClient
@@ -73,9 +75,7 @@ def _build_response(
 
     # Fallback: auto-match when a Notion ingredient name equals a Grocy product
     # name. The explicit mapping above always takes precedence.
-    grocy_by_name: dict[str, int] = {
-        _norm(p.name): p.id for p in GrocyProduct.select()
-    }
+    grocy_by_name: dict[str, int] = {_norm(p.name): p.id for p in GrocyProduct.select()}
 
     # Group fallback: a generic ingredient (e.g. "Bourbon") matches any product in
     # the group of that name, and is in stock if ANY of those products is.
@@ -106,9 +106,9 @@ def _build_response(
             if pid is None:
                 pid = grocy_by_name.get(key)
 
-            if pid is not None:                       # matched a specific bottle
+            if pid is not None:  # matched a specific bottle
                 matched, in_stock = True, pid in in_stock_ids
-            elif key in group_products:               # matched a group → any bottle counts
+            elif key in group_products:  # matched a group → any bottle counts
                 matched = True
                 in_stock = any(p in in_stock_ids for p in group_products[key])
             else:
@@ -119,26 +119,31 @@ def _build_response(
             elif not in_stock:
                 all_matched_in_stock = False
 
-            ingredients.append(IngredientDetail(
-                ingredient=ing.ingredient,
-                amount=ing.amount,
-                unit=ing.unit,
-                in_stock=in_stock,
-                matched=matched,
-            ))
+            ingredients.append(
+                IngredientDetail(
+                    ingredient=ing.ingredient,
+                    amount=ing.amount,
+                    unit=ing.unit,
+                    in_stock=in_stock,
+                    matched=matched,
+                )
+            )
 
-        crafted_drinks.append(CraftedDrink(
-            id=db_drink.notion_page_id,
-            name=db_drink.name,
-            glassware=db_drink.glassware,
-            tags=db_drink.tags,
-            method=db_drink.method,
-            available=all_matched_in_stock,
-            ingredients=ingredients,
-            equipment=db_drink.equipment,
-            host_notes=db_drink.notes if host_mode else None,
-            author=db_drink.author if host_mode else None,
-            unmatched_ingredients=unmatched if host_mode else [],
-        ))
+        crafted_drinks.append(
+            CraftedDrink(
+                id=db_drink.notion_page_id,
+                name=db_drink.name,
+                glassware=db_drink.glassware,
+                classes=db_drink.classes,
+                tags=db_drink.tags,
+                method=db_drink.method,
+                available=all_matched_in_stock,
+                ingredients=ingredients,
+                equipment=db_drink.equipment,
+                host_notes=db_drink.notes if host_mode else None,
+                author=db_drink.author if host_mode else None,
+                unmatched_ingredients=unmatched if host_mode else [],
+            )
+        )
 
     return CraftedDrinksResponse(crafted_drinks=crafted_drinks)
