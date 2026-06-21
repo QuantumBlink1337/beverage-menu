@@ -62,11 +62,11 @@ function app() {
     categories: [
       { id: "all", label: "Featured" },
       { id: "beer-wine", label: "Beer & Wine" },
-      { id: "liquor", label: "Bar Stock" },
       { id: "cocktails", label: "Cocktails" },
+      { id: "thc", label: "THC" },
       { id: "coffee-tea", label: "Coffee & Tea" },
       { id: "non-alcoholic", label: "Non-Alcoholic" },
-      { id: "thc", label: "THC" },
+      { id: "liquor", label: "Bar Stock" },
     ],
 
     async init() {

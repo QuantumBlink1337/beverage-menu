@@ -102,7 +102,7 @@ class GrocyClient:
         return GrocyProductGroup(id=raw["id"], name=raw["name"])
 
     def parse_product(self, raw: dict) -> GrocyProduct:
-        uf = raw["userfields"] or {}
+        uf = raw.get("userfields") or {}
         raw_aliases = uf.get("notion_aliases") or ""
         aliases = [a.strip() for a in re.split(r"[\n,]", raw_aliases) if a.strip()]
         return GrocyProduct(
