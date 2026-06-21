@@ -27,6 +27,8 @@ class GrocyProduct(BaseModel):
     parent_product_id: int | None = None
     no_own_stock: bool = False
     description: str | None = None
+    aliases: list[str]
+    always_available: bool
 
 
 class GrocyStockEntry(BaseModel):

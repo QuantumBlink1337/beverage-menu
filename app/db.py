@@ -111,6 +111,8 @@ class GrocyProduct(BaseModel):
     parent_product = ForeignKeyField("self", null=True, backref="children")
     no_own_stock = BooleanField(default=False)
     description = TextField(null=True)
+    aliases = JSONListField()
+    always_available = BooleanField(default=False)
 
     @classmethod
     def upsert_all(cls, products: list[dict]) -> None:
@@ -150,6 +152,7 @@ class CraftedDrink(BaseModel):
     method = TextField(null=True)
     notes = TextField(null=True)
     author = CharField(null=True)
+    always_available = BooleanField(default=False)
 
     @classmethod
     def replace_all(cls, drinks_data: list[dict]) -> None:

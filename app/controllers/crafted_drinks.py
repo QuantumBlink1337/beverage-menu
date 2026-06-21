@@ -62,26 +62,36 @@ def _build_response(
     host_mode: bool,
     tags: list[str] | None = None,
 ) -> CraftedDrinksResponse:
+
+    products = list(GrocyProduct.select())
+
     # Build a stock map of in-stock product IDs.
     in_stock_ids: set[int] = {
         e.product_id for e in GrocyStockEntry.select() if e.amount > 0
     }
+    # some stuff might always be available so we dont need to look at quantity for those
+    in_stock_ids |= {p.id for p in products if p.always_available}
 
-    # All match keys are normalized (case/whitespace-insensitive) — see _norm.
+    # TODO clean up and retire ingredient map
     ingredient_map: dict[str, int] = {
         _norm(m.notion_ingredient_name): m.grocy_product_id
         for m in IngredientMapping.select()
     }
+    # look at grocy aliases first before use automatch
+    alias_map: dict[str, int] = {}
+    for p in products:
+        for alias in p.aliases:
+            alias_map[_norm(alias)] = p.id
 
     # Fallback: auto-match when a Notion ingredient name equals a Grocy product
-    # name. The explicit mapping above always takes precedence.
-    grocy_by_name: dict[str, int] = {_norm(p.name): p.id for p in GrocyProduct.select()}
+    # name.
+    grocy_by_name: dict[str, int] = {_norm(p.name): p.id for p in products}
 
     # Group fallback: a generic ingredient (e.g. "Bourbon") matches any product in
     # the group of that name, and is in stock if ANY of those products is.
     group_name_by_id = {g.id: g.name for g in GrocyProductGroup.select()}
     group_products: dict[str, list[int]] = defaultdict(list)
-    for p in GrocyProduct.select():
+    for p in products:
         if p.product_group_id in group_name_by_id:
             group_products[_norm(group_name_by_id[p.product_group_id])].append(p.id)
 
@@ -99,10 +109,12 @@ def _build_response(
         all_matched_in_stock = True
 
         for ing in db_drink.ingredients:
-            # Precedence: explicit mapping → exact product name → product group.
+            # Precedence: alias → exact product name → product group.
             # Matching is case/whitespace-insensitive (normalized key).
             key = _norm(ing.ingredient)
-            pid = ingredient_map.get(key)
+            pid = alias_map.get(key)
+            if pid is None:
+                pid = ingredient_map.get(key)  # fallback to ingredient map
             if pid is None:
                 pid = grocy_by_name.get(key)
 

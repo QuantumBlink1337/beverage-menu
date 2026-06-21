@@ -23,9 +23,7 @@ class GrocyClient:
         # Grocy runs behind Tailscale Serve which uses a Tailscale-provisioned
         # certificate that Python's certifi bundle doesn't trust. Safe to skip
         # verification for a self-hosted internal service on a private Tailnet.
-        self._http_client = httpx.AsyncClient(
-            headers=self.headers, verify=False
-        )
+        self._http_client = httpx.AsyncClient(headers=self.headers, verify=False)
 
     # ---------------------------------------------------------------------------
     # Private fetch methods — return raw Grocy response dicts
@@ -39,23 +37,17 @@ class GrocyClient:
         return response.json()
 
     async def _fetch_products(self) -> list[dict]:
-        response = await self._http_client.get(
-            f"{self.base_url}/api/objects/products"
-        )
+        response = await self._http_client.get(f"{self.base_url}/api/objects/products")
         response.raise_for_status()
         return response.json()
 
     async def _fetch_stock(self) -> list[dict]:
-        response = await self._http_client.get(
-            f"{self.base_url}/api/objects/stock"
-        )
+        response = await self._http_client.get(f"{self.base_url}/api/objects/stock")
         response.raise_for_status()
         return response.json()
 
     async def _fetch_locations(self) -> list[dict]:
-        response = await self._http_client.get(
-            f"{self.base_url}/api/objects/locations"
-        )
+        response = await self._http_client.get(f"{self.base_url}/api/objects/locations")
         response.raise_for_status()
         return response.json()
 
@@ -98,8 +90,7 @@ class GrocyClient:
         location_map = {loc["id"]: loc["name"] for loc in raw_locations}
         unit_name_by_id = {u["id"]: u["name"] for u in raw_units}
         product_unit_map = {
-            p["id"]: unit_name_by_id.get(p.get("qu_id_stock"))
-            for p in raw_products
+            p["id"]: unit_name_by_id.get(p.get("qu_id_stock")) for p in raw_products
         }
         return self.aggregate_stock(raw_stock, location_map, product_unit_map)
 
@@ -111,6 +102,9 @@ class GrocyClient:
         return GrocyProductGroup(id=raw["id"], name=raw["name"])
 
     def parse_product(self, raw: dict) -> GrocyProduct:
+        uf = raw["userfields"] or {}
+        raw_aliases = uf.get("notion_aliases") or ""
+        aliases = [a.strip() for a in re.split(r"[\n,]", raw_aliases) if a.strip()]
         return GrocyProduct(
             id=raw["id"],
             name=raw["name"].strip(),
@@ -118,6 +112,8 @@ class GrocyClient:
             parent_product_id=raw.get("parent_product_id"),
             no_own_stock=bool(raw.get("no_own_stock", 0)),
             description=_strip_html(raw.get("description")),
+            aliases=aliases,
+            always_available=uf.get("always_available") in ("1", 1, True),
         )
 
     def aggregate_stock(
