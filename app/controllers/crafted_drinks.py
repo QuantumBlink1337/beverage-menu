@@ -137,7 +137,7 @@ def _build_response(
                 classes=db_drink.classes,
                 tags=db_drink.tags,
                 method=db_drink.method,
-                available=all_matched_in_stock,
+                available=all_matched_in_stock and not unmatched,
                 ingredients=ingredients,
                 equipment=db_drink.equipment,
                 host_notes=db_drink.notes if host_mode else None,
