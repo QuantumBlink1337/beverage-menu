@@ -80,6 +80,61 @@ class TestParseProduct:
 
 
 # ---------------------------------------------------------------------------
+# TestParseProductUserfields — notion_aliases + always_available
+# ---------------------------------------------------------------------------
+
+class TestParseProductUserfields:
+    def test_no_userfields_key_degrades_to_defaults(self, client, raw_product_child):
+        # Fixture has no "userfields" key — a product predating the userfield
+        # must degrade cleanly, not KeyError.
+        result = client.parse_product(raw_product_child)
+        assert result.aliases == []
+        assert result.always_available is False
+
+    def test_null_userfield_values(self, client, raw_product_child):
+        # Grocy returns null for a defined-but-unset userfield.
+        raw_product_child["userfields"] = {"notion_aliases": None, "always_available": None}
+        result = client.parse_product(raw_product_child)
+        assert result.aliases == []
+        assert result.always_available is False
+
+    def test_aliases_split_on_newlines(self, client, raw_product_child):
+        raw_product_child["userfields"] = {"notion_aliases": "Ginger Beer\nGinger Ale"}
+        result = client.parse_product(raw_product_child)
+        assert result.aliases == ["Ginger Beer", "Ginger Ale"]
+
+    def test_aliases_split_on_commas(self, client, raw_product_child):
+        raw_product_child["userfields"] = {"notion_aliases": "Lime, Lime Juice"}
+        result = client.parse_product(raw_product_child)
+        assert result.aliases == ["Lime", "Lime Juice"]
+
+    def test_aliases_strip_whitespace_and_drop_empties(self, client, raw_product_child):
+        raw_product_child["userfields"] = {"notion_aliases": "  Lemon  ,\n\n ,  Lemon Juice "}
+        result = client.parse_product(raw_product_child)
+        assert result.aliases == ["Lemon", "Lemon Juice"]
+
+    def test_empty_alias_string(self, client, raw_product_child):
+        raw_product_child["userfields"] = {"notion_aliases": ""}
+        result = client.parse_product(raw_product_child)
+        assert result.aliases == []
+
+    def test_always_available_checked_string(self, client, raw_product_child):
+        raw_product_child["userfields"] = {"always_available": "1"}
+        result = client.parse_product(raw_product_child)
+        assert result.always_available is True
+
+    def test_always_available_unchecked_string(self, client, raw_product_child):
+        raw_product_child["userfields"] = {"always_available": "0"}
+        result = client.parse_product(raw_product_child)
+        assert result.always_available is False
+
+    def test_always_available_integer_one(self, client, raw_product_child):
+        raw_product_child["userfields"] = {"always_available": 1}
+        result = client.parse_product(raw_product_child)
+        assert result.always_available is True
+
+
+# ---------------------------------------------------------------------------
 # TestAggregateStock
 # ---------------------------------------------------------------------------
 

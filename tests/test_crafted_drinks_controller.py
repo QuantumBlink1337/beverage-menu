@@ -95,15 +95,18 @@ class TestBuildResponseAvailability:
         result = _build_response(host_mode=False)
         assert result.crafted_drinks[0].available is False
 
-    def test_available_when_all_ingredients_unmatched(self):
-        # Can't determine unavailability without mappings — treat as available.
+    def test_unavailable_when_all_ingredients_unmatched(self):
+        # Strict availability: an unmatched ingredient can't be confirmed in stock,
+        # so the drink is treated as unavailable (hidden from guests).
         drink = _seed_drink()
         _seed_ingredient(drink, "Mystery Spirit")
 
         result = _build_response(host_mode=False)
-        assert result.crafted_drinks[0].available is True
+        assert result.crafted_drinks[0].available is False
 
-    def test_unmatched_ingredient_does_not_affect_availability(self):
+    def test_unmatched_ingredient_makes_unavailable(self):
+        # Even with every other ingredient in stock, a single unmatched ingredient
+        # makes the whole drink unavailable.
         drink = _seed_drink()
         _seed_ingredient(drink, "Amaretto")
         _seed_ingredient(drink, "Mystery Spirit")
@@ -112,7 +115,7 @@ class TestBuildResponseAvailability:
         _seed_mapping()
 
         result = _build_response(host_mode=False)
-        assert result.crafted_drinks[0].available is True
+        assert result.crafted_drinks[0].available is False
 
     def test_unavailable_when_one_of_two_matched_out_of_stock(self):
         drink = _seed_drink()

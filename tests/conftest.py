@@ -19,6 +19,12 @@ def raw_drink_page():
                 "type": "select",
                 "select": {"name": "Rocks"}
             },
+            "Class": {
+                "type": "multi_select",
+                "multi_select": [
+                    {"name": "Alcoholic", "color": "green"}
+                ]
+            },
             "Tags": {
                 "type": "multi_select",
                 "multi_select": [

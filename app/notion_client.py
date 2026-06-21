@@ -122,7 +122,7 @@ class NotionClient:
             glassware=glassware_select["name"] if glassware_select else None,
             classes=[
                 Tag(name=t["name"], color=t["color"])
-                for t in properties["Class"]["multi_select"]
+                for t in properties.get("Class", {}).get("multi_select", [])
             ],
             tags=[
                 Tag(name=t["name"], color=t["color"])

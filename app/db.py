@@ -111,7 +111,7 @@ class GrocyProduct(BaseModel):
     parent_product = ForeignKeyField("self", null=True, backref="children")
     no_own_stock = BooleanField(default=False)
     description = TextField(null=True)
-    aliases = JSONListField()
+    aliases = JSONListField(default=list)
     always_available = BooleanField(default=False)
 
     @classmethod
@@ -146,7 +146,7 @@ class CraftedDrink(BaseModel):
     notion_page_id = CharField(primary_key=True)
     name = CharField()
     glassware = CharField(null=True)
-    classes = JSONListField()
+    classes = JSONListField(default=list)
     tags = JSONListField()
     equipment = JSONListField()
     method = TextField(null=True)
