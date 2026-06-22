@@ -57,6 +57,46 @@
             </template>
         </nav>
 
+        <!-- Tag filter — secondary bar, only on cocktail-bearing tabs with tags -->
+        <div
+            class="filter-bar"
+            x-show="['all','mixed-drinks','thc'].includes(activeCategory) && availableTags.length"
+        >
+            <div
+                class="dropdown"
+                x-data="{ open: false }"
+                @click.outside="open = false"
+            >
+                <button
+                    type="button"
+                    class="filter-toggle"
+                    :class="{ active: selectedTags.length }"
+                    @click="open = !open"
+                    x-text="selectedTags.length ? selectedTags.length + (selectedTags.length > 1 ? ' tags' : ' tag') + ' selected' : 'Filter by tag'"
+                ></button>
+                <div class="dropdown-panel" x-show="open" x-cloak>
+                    <template x-for="t in availableTags" :key="t.name">
+                        <label class="filter-option">
+                            <input
+                                type="checkbox"
+                                :checked="selectedTags.includes(t.name)"
+                                @change="toggleTag(t.name)"
+                            />
+                            <span x-text="t.name"></span>
+                        </label>
+                    </template>
+                </div>
+            </div>
+            <button
+                type="button"
+                class="filter-clear"
+                x-show="selectedTags.length"
+                @click="selectedTags = []"
+            >
+                Clear
+            </button>
+        </div>
+
         <main>
             <!-- host-only data refresh control -->
 

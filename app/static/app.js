@@ -111,24 +111,29 @@ function app() {
 
     get visibleCocktails() {
       const base = this.availableCocktails; // ← getter reading a getter
+      let list;
       switch (this.activeCategory) {
         case "all": // Featured → only cocktails tagged "Featured"
-          return base.filter((c) => c.tags.some((t) => t.name === "Featured"));
+          list = base.filter((c) => c.tags.some((t) => t.name === "Featured"));
+          break;
         case "mixed-drinks": // the full cocktail list
-          return base;
-        // case "non-alcoholic":
-        //   return base.filter((c) =>
-        //     c.classes.some((t) =>
-        //       ["Non-Alcoholic", "Mocktail", "NA"].includes(t.name),
-        //     ),
-        //   );
+          list = base;
+          break;
         case "thc":
-          return base.filter((c) =>
+          list = base.filter((c) =>
             c.classes.some((t) => ["THC", "Cannabis"].includes(t.name)),
           );
+          break;
         default:
-          return []; // beverage-only tabs show no cocktails
+          list = []; // beverage-only tabs show no cocktails
       }
+      // theme-tag filter (intersection): keep drinks carrying any selected tag
+      if (this.selectedTags.length) {
+        list = list.filter((c) =>
+          c.tags.some((t) => this.selectedTags.includes(t.name)),
+        );
+      }
+      return list;
     },
 
     // --- derived: beverages ---
@@ -147,6 +152,16 @@ function app() {
       if (cocktails.length) sections.push({ name: "Cocktails", drinks: cocktails });
       if (mocktails.length) sections.push({ name: "Mocktails", drinks: mocktails });
       return sections;
+    },
+
+    // Distinct theme tags across the loaded cocktails, for the filter dropdown.
+    // Excludes "Featured" — it's a routing tag, not a theme.
+    get availableTags() {
+      const seen = new Map();
+      for (const c of this.availableCocktails)
+        for (const t of c.tags)
+          if (t.name !== "Featured" && !seen.has(t.name)) seen.set(t.name, t);
+      return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
     },
 
     get visibleGroups() {
@@ -176,6 +191,12 @@ function app() {
     // --- methods ---
     selectCategory(id) {
       this.activeCategory = id;
+    },
+
+    toggleTag(name) {
+      const i = this.selectedTags.indexOf(name);
+      if (i === -1) this.selectedTags.push(name);
+      else this.selectedTags.splice(i, 1);
     },
 
     toggleCocktail(id) {
