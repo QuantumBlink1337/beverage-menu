@@ -57,43 +57,50 @@
             </template>
         </nav>
 
-        <!-- Tag filter — secondary bar, only on cocktail-bearing tabs with tags -->
+        <!-- Tag filter — floating button (desktop: bottom-left), cocktail tabs only -->
         <div
-            class="filter-bar"
+            class="filter-fab"
+            x-data="{ open: false }"
             x-show="['all','mixed-drinks','thc'].includes(activeCategory) && availableTags.length"
+            @click.outside="open = false"
         >
-            <div
-                class="dropdown"
-                x-data="{ open: false }"
-                @click.outside="open = false"
-            >
-                <button
-                    type="button"
-                    class="filter-toggle"
-                    :class="{ active: selectedTags.length }"
-                    @click="open = !open"
-                    x-text="selectedTags.length ? selectedTags.length + (selectedTags.length > 1 ? ' tags' : ' tag') + ' selected' : 'Filter by tag'"
-                ></button>
-                <div class="dropdown-panel" x-show="open" x-cloak>
-                    <template x-for="t in availableTags" :key="t.name">
-                        <label class="filter-option">
-                            <input
-                                type="checkbox"
-                                :checked="selectedTags.includes(t.name)"
-                                @change="toggleTag(t.name)"
-                            />
-                            <span x-text="t.name"></span>
-                        </label>
-                    </template>
+            <div class="filter-panel" x-show="open" x-cloak>
+                <div class="filter-panel-head">
+                    <span>Filter by tag</span>
+                    <button
+                        type="button"
+                        class="filter-clear"
+                        x-show="selectedTags.length"
+                        @click="selectedTags = []"
+                    >
+                        Clear
+                    </button>
                 </div>
+                <template x-for="t in availableTags" :key="t.name">
+                    <label class="filter-option">
+                        <input
+                            type="checkbox"
+                            :checked="selectedTags.includes(t.name)"
+                            @change="toggleTag(t.name)"
+                        />
+                        <span x-text="t.name"></span>
+                    </label>
+                </template>
             </div>
             <button
                 type="button"
-                class="filter-clear"
-                x-show="selectedTags.length"
-                @click="selectedTags = []"
+                class="filter-button"
+                :class="{ active: selectedTags.length }"
+                @click="open = !open"
+                :aria-expanded="open"
+                aria-label="Filter by tag"
             >
-                Clear
+                <span class="filter-icon" aria-hidden="true"></span>
+                <span
+                    class="filter-count"
+                    x-show="selectedTags.length"
+                    x-text="selectedTags.length"
+                ></span>
             </button>
         </div>
 
