@@ -51,6 +51,7 @@ function app() {
     // --- UI state ---
     activeCategory: "all",
     expandedCocktailIds: [], // ids of open cocktail cards (multi-open)
+    selectedTags: [], // theme-tag filter (empty = show all)
 
     hostMode: false,
     mappings: [],
@@ -62,7 +63,7 @@ function app() {
     categories: [
       { id: "all", label: "Featured" },
       { id: "beer-wine", label: "Beer & Wine" },
-      { id: "cocktails", label: "Cocktails" },
+      { id: "mixed-drinks", label: "Mixed Drinks" },
       { id: "thc", label: "THC" },
       { id: "coffee-tea", label: "Coffee & Tea" },
       { id: "non-alcoholic", label: "Non-Alcoholic" },
@@ -113,14 +114,14 @@ function app() {
       switch (this.activeCategory) {
         case "all": // Featured → only cocktails tagged "Featured"
           return base.filter((c) => c.tags.some((t) => t.name === "Featured"));
-        case "cocktails": // the full cocktail list
+        case "mixed-drinks": // the full cocktail list
           return base;
-        case "non-alcoholic":
-          return base.filter((c) =>
-            c.classes.some((t) =>
-              ["Non-Alcoholic", "Mocktail", "NA"].includes(t.name),
-            ),
-          );
+        // case "non-alcoholic":
+        //   return base.filter((c) =>
+        //     c.classes.some((t) =>
+        //       ["Non-Alcoholic", "Mocktail", "NA"].includes(t.name),
+        //     ),
+        //   );
         case "thc":
           return base.filter((c) =>
             c.classes.some((t) => ["THC", "Cannabis"].includes(t.name)),
@@ -134,6 +135,18 @@ function app() {
     // A group shows on the Bar Stock (liquor) tab.
     onBarStock(name) {
       return (GROUP_TABS[name] || []).includes("liquor");
+    },
+    isMocktail(c) {
+      return c.classes.some((t) => t.name === "Mocktail");
+    },
+    get mixedDrinkSections() {
+      const drinks = this.visibleCocktails;
+      const cocktails = drinks.filter((c) => !this.isMocktail(c));
+      const mocktails = drinks.filter((c) => this.isMocktail(c));
+      const sections = [];
+      if (cocktails.length) sections.push({ name: "Cocktails", drinks: cocktails });
+      if (mocktails.length) sections.push({ name: "Mocktails", drinks: mocktails });
+      return sections;
     },
 
     get visibleGroups() {

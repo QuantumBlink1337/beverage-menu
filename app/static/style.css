@@ -148,10 +148,7 @@ main > section {
     margin-bottom: 2rem;
 }
 
-main > section[aria-labelledby="cocktails-heading"] {
-    align-items: stretch;
-}
-main > section[aria-labelledby="cocktails-heading"].expanded {
+main > section.cocktail-grid.expanded {
     align-items: start;
 }
 
