@@ -52,6 +52,8 @@ function app() {
     activeCategory: "all",
     expandedCocktailIds: [], // ids of open cocktail cards (multi-open)
     selectedTags: [], // theme-tag filter (empty = show all)
+    printCategories: [], // categories to include in the printed menu
+    printing: false, // true while a print render is active
 
     hostMode: false,
     mappings: [],
@@ -72,6 +74,13 @@ function app() {
 
     async init() {
       this.hostMode = new URLSearchParams(location.search).has("host");
+
+      // Default the print menu to every real category (Featured is a curated
+      // overview, not a menu section). Reset the print flag when done.
+      this.printCategories = this.categories
+        .filter((c) => c.id !== "all")
+        .map((c) => c.id);
+      window.addEventListener("afterprint", () => (this.printing = false));
 
       const [bev, cocktails] = await Promise.allSettled([
         fetch("/api/beverages").then((r) => r.json()),
@@ -109,10 +118,17 @@ function app() {
         : this.cocktails.filter((c) => c.available);
     },
 
-    get visibleCocktails() {
-      const base = this.availableCocktails; // ← getter reading a getter
+    // Which categories to render: the active tab on screen, or the chosen set
+    // while printing — drives both beverage groups and cocktail sections.
+    get renderCategories() {
+      return this.printing ? this.printCategories : [this.activeCategory];
+    },
+
+    // Cocktails for one category id (respects the theme-tag filter).
+    visibleCocktailsFor(cat) {
+      const base = this.availableCocktails;
       let list;
-      switch (this.activeCategory) {
+      switch (cat) {
         case "all": // Featured → only cocktails tagged "Featured"
           list = base.filter((c) => c.tags.some((t) => t.name === "Featured"));
           break;
@@ -136,6 +152,11 @@ function app() {
       return list;
     },
 
+    // Active-tab cocktails — used by the empty-state.
+    get visibleCocktails() {
+      return this.visibleCocktailsFor(this.activeCategory);
+    },
+
     // --- derived: beverages ---
     // A group shows on the Bar Stock (liquor) tab.
     onBarStock(name) {
@@ -144,8 +165,14 @@ function app() {
     isMocktail(c) {
       return c.classes.some((t) => t.name === "Mocktail");
     },
+
+    // Cocktails across all rendered categories → Cocktails + Mocktails sections.
+    // Deduped by id so overlapping categories never repeat a drink.
     get mixedDrinkSections() {
-      const drinks = this.visibleCocktails;
+      const byId = new Map();
+      for (const cat of this.renderCategories)
+        for (const c of this.visibleCocktailsFor(cat)) byId.set(c.id, c);
+      const drinks = [...byId.values()];
       const cocktails = drinks.filter((c) => !this.isMocktail(c));
       const mocktails = drinks.filter((c) => this.isMocktail(c));
       const sections = [];
@@ -164,13 +191,14 @@ function app() {
       return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
     },
 
-    get visibleGroups() {
+    // Beverage groups for one category id.
+    groupsFor(cat) {
       // Bar Stock → the full inventory, every liquor group broken out
-      if (this.activeCategory === "liquor") {
+      if (cat === "liquor") {
         return this.beverages.filter((g) => this.onBarStock(g.name));
       }
       // Featured → curated: drill-down groups hidden, real spirits collapsed
-      if (this.activeCategory === "all") {
+      if (cat === "all") {
         const shown = this.beverages.filter((g) => !DRILLDOWN_ONLY.has(g.name));
         const groups = shown.filter((g) => !this.onBarStock(g.name));
         const spirits = shown.filter((g) => this.onBarStock(g.name));
@@ -184,8 +212,21 @@ function app() {
       }
       // every other tab → straight mapping
       return this.beverages.filter((g) =>
-        (GROUP_TABS[g.name] || []).includes(this.activeCategory),
+        (GROUP_TABS[g.name] || []).includes(cat),
       );
+    },
+
+    // Beverage groups across all rendered categories, deduped by group name.
+    get visibleGroups() {
+      const seen = new Set();
+      const out = [];
+      for (const cat of this.renderCategories)
+        for (const g of this.groupsFor(cat))
+          if (!seen.has(g.name)) {
+            seen.add(g.name);
+            out.push(g);
+          }
+      return out;
     },
 
     // --- methods ---
@@ -197,6 +238,28 @@ function app() {
       const i = this.selectedTags.indexOf(name);
       if (i === -1) this.selectedTags.push(name);
       else this.selectedTags.splice(i, 1);
+    },
+
+    togglePrintCategory(id) {
+      const i = this.printCategories.indexOf(id);
+      if (i === -1) this.printCategories.push(id);
+      else this.printCategories.splice(i, 1);
+    },
+
+    // Render the selected categories, then open the print dialog once the DOM
+    // has updated. afterprint (wired in init) flips `printing` back off.
+    printMenu() {
+      this.printing = true;
+      this.$nextTick(() => window.print());
+    },
+
+    // Today's date, for the printed menu footer.
+    printDate() {
+      return new Date().toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
     },
 
     toggleCocktail(id) {

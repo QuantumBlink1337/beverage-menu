@@ -28,7 +28,10 @@
 
         <!-- Page banner: wordmark left, waves right -->
         <header>
-            <h1 class="wordmark"><img src="/goon_text.svg" alt="GOON" /></h1>
+            <div class="brand">
+                <h1 class="wordmark"><img src="/goon_text.svg" alt="GOON" /></h1>
+                <p class="print-subtitle">head mixologist – matt marlow</p>
+            </div>
             <div class="host-bar" x-show="hostMode">
                 <span
                     class="host-msg"
@@ -101,6 +104,62 @@
                     x-show="selectedTags.length"
                     x-text="selectedTags.length"
                 ></span>
+            </button>
+        </div>
+
+        <!-- Print menu — floating button (bottom-right) opens a category picker -->
+        <div
+            class="print-fab"
+            x-data="{ open: false }"
+            @click.outside="open = false"
+        >
+            <div class="print-panel" x-show="open" x-cloak>
+                <div class="print-panel-head"><span>Print menu</span></div>
+                <template
+                    x-for="cat in categories.filter((c) => c.id !== 'all')"
+                    :key="cat.id"
+                >
+                    <label class="filter-option">
+                        <input
+                            type="checkbox"
+                            :checked="printCategories.includes(cat.id)"
+                            @change="togglePrintCategory(cat.id)"
+                        />
+                        <span x-text="cat.label"></span>
+                    </label>
+                </template>
+                <button
+                    type="button"
+                    class="print-go"
+                    :disabled="!printCategories.length"
+                    @click="open = false; printMenu()"
+                >
+                    Print
+                </button>
+            </div>
+            <button
+                type="button"
+                class="print-button"
+                @click="open = !open"
+                :aria-expanded="open"
+                aria-label="Print menu"
+                title="Print menu"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path
+                        d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                    />
+                    <rect x="6" y="14" width="12" height="8" />
+                </svg>
             </button>
         </div>
 
@@ -188,11 +247,6 @@
                                     </template>
                                 </div>
                             </div>
-                            <!-- host-only: flag cocktails that can't be made right now -->
-                            <p class="warn" x-show="hostMode && !c.available">
-                                Unavailable — missing ingredients
-                            </p>
-
                             <!-- menu-style ingredient prose, shown to everyone (names only, no quantities) -->
                             <p
                                 class="ingredients"
@@ -200,7 +254,16 @@
                             ></p>
 
                             <!-- prep detail is host-only: guests don't need amounts/method/etc. -->
-                            <div class="tags classes" x-show="c.classes.length">
+                            <div
+                                class="tags classes"
+                                x-show="c.classes.length || (hostMode && !c.available)"
+                            >
+                                <!-- host-only: far-left flag; prep notes reveal why -->
+                                <span
+                                    class="tag unavailable"
+                                    x-show="hostMode && !c.available"
+                                    >Unavailable</span
+                                >
                                 <template x-for="t in c.classes" :key="t.name">
                                     <span
                                         class="tag"
@@ -304,5 +367,11 @@
             <span aria-hidden="true">·</span>
             <span>Hosted on Nucleus</span>
         </footer>
+
+        <!-- print-only menu footer: print date + brand bar -->
+        <div class="print-footer" aria-hidden="true">
+            <p class="print-date" x-text="'Printed ' + printDate()"></p>
+            <div class="print-bar"></div>
+        </div>
     </body>
 </html>
