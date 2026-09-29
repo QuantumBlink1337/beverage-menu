@@ -145,8 +145,9 @@ class NotionClient:
                 title = block["child_database"]["title"]
                 db_ids[title] = block["id"]
             elif block["type"] == "numbered_list_item":
-                step = block["numbered_list_item"]["rich_text"][0]["plain_text"]
-                steps.append(step)
+                rich_text = block["numbered_list_item"]["rich_text"]
+                if rich_text:
+                    steps.append(rich_text[0]["plain_text"])
 
         return NotionPageContent(
             db_ids=db_ids,
