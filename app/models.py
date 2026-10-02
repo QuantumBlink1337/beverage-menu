@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
@@ -121,6 +123,18 @@ class CraftedDrink(BaseModel):
 
 class CraftedDrinksResponse(BaseModel):
     crafted_drinks: list[CraftedDrink]
+
+
+class ShoppingListItem(BaseModel):
+    ingredient: str
+    status: Literal["out_of_stock", "unmatched"]  # unmatched = not found in Grocy
+    drinks: list[str] = []  # names of the drinks that need it
+
+
+class ShoppingListResponse(BaseModel):
+    tags: list[str]
+    drink_count: int  # drinks matching the tags, whether or not anything is missing
+    items: list[ShoppingListItem]
 
 
 # ---------------------------------------------------------------------------

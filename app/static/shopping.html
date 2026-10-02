@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Shopping list · GOON Bar</title>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+        <script>
+            // Checklist state lives in localStorage, keyed by the tag set, so
+            // ticks survive reloads. Storage can throw (private mode) → ignore.
+            function shopping() {
+                return {
+                    tags: [],
+                    list: null,
+                    status: "loading", // loading | ready | error | no-tags
+                    checked: [], // ingredient names ticked off
+
+                    get storageKey() {
+                        return "shopping:" + [...this.tags].sort().join(",");
+                    },
+
+                    async init() {
+                        this.tags = (new URLSearchParams(location.search).get("tags") || "")
+                            .split(",")
+                            .map((t) => t.trim())
+                            .filter(Boolean);
+                        if (!this.tags.length) {
+                            this.status = "no-tags";
+                            return;
+                        }
+                        try {
+                            this.checked = JSON.parse(localStorage.getItem(this.storageKey)) || [];
+                        } catch (e) {
+                            this.checked = [];
+                        }
+                        try {
+                            const res = await fetch(
+                                "/api/crafted_drinks/shopping_list?tags=" +
+                                    encodeURIComponent(this.tags.join(",")),
+                            );
+                            if (!res.ok) throw new Error(res.status);
+                            this.list = await res.json();
+                            this.status = "ready";
+                        } catch (e) {
+                            this.status = "error";
+                        }
+                    },
+
+                    isChecked(name) {
+                        return this.checked.includes(name);
+                    },
+                    toggle(name) {
+                        const i = this.checked.indexOf(name);
+                        if (i === -1) this.checked.push(name);
+                        else this.checked.splice(i, 1);
+                        this.save();
+                    },
+                    reset() {
+                        this.checked = [];
+                        this.save();
+                    },
+                    save() {
+                        try {
+                            localStorage.setItem(this.storageKey, JSON.stringify(this.checked));
+                        } catch (e) {
+                            /* non-essential */
+                        }
+                    },
+                };
+            }
+        </script>
+        <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+        <link rel="stylesheet" href="/style.css" />
+    </head>
+    <body x-data="shopping()" x-cloak>
+        <header>
+            <div class="brand">
+                <h1 class="wordmark"><img src="/goon_text.svg" alt="GOON" /></h1>
+            </div>
+            <img class="waves" src="/goon-waves.svg" alt="" />
+        </header>
+
+        <main>
+            <section class="shopping-list">
+                <h2 x-text="'Shopping list' + (tags.length ? ' — ' + tags.join(', ') : '')"></h2>
+
+                <p x-show="status === 'loading'">Loading…</p>
+                <p x-show="status === 'error'">Sorry — the list couldn’t load.</p>
+                <p x-show="status === 'no-tags'">
+                    No tags chosen. <a href="/?host=true">Back to the menu</a> to pick some.
+                </p>
+                <p x-show="status === 'ready' && !list.items.length">
+                    Nothing to buy — everything is in stock.
+                </p>
+
+                <ul x-show="status === 'ready'">
+                    <template x-for="item in list?.items" :key="item.ingredient">
+                        <li :class="{ done: isChecked(item.ingredient) }">
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    :checked="isChecked(item.ingredient)"
+                                    @change="toggle(item.ingredient)"
+                                />
+                                <span>
+                                    <span class="item-name" x-text="item.ingredient"></span>
+                                    <span
+                                        class="item-note"
+                                        x-show="item.status === 'unmatched'"
+                                        >(not in Grocy — check manually)</span
+                                    >
+                                    <span class="item-drinks" x-text="item.drinks.join(', ')"></span>
+                                </span>
+                            </label>
+                        </li>
+                    </template>
+                </ul>
+
+                <p class="shopping-actions" x-show="checked.length">
+                    <button type="button" @click="reset()">Uncheck all</button>
+                </p>
+            </section>
+        </main>
+    </body>
+</html>

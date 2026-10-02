@@ -137,6 +137,33 @@
                 >
                     Print
                 </button>
+
+                <!-- host-only: checklist page of missing ingredients for the filtered tags -->
+                <template x-if="hostMode">
+                    <div class="shopping-picker">
+                        <div class="print-panel-head">
+                            <span>Shopping list</span>
+                        </div>
+                        <p class="shopping-hint">
+                            <span x-show="selectedTags.length"
+                                >Missing ingredients for
+                                <strong x-text="selectedTags.join(', ')"></strong
+                                >.</span
+                            >
+                            <span x-show="!selectedTags.length"
+                                >Pick tags with the filter button first.</span
+                            >
+                        </p>
+                        <a
+                            class="print-go"
+                            :href="'/shopping.html?tags=' + encodeURIComponent(selectedTags.join(','))"
+                            :aria-disabled="!selectedTags.length"
+                            :tabindex="selectedTags.length ? 0 : -1"
+                            @click="if (!selectedTags.length) $event.preventDefault()"
+                            >Open list</a
+                        >
+                    </div>
+                </template>
             </div>
             <button
                 type="button"

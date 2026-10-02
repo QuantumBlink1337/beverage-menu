@@ -610,9 +610,70 @@ footer a {
     font-size: 0.9rem;
     cursor: pointer;
 }
-.print-go:disabled {
+.print-go:disabled,
+.print-go[aria-disabled="true"] {
     opacity: 0.5;
     cursor: default;
+}
+a.print-go {
+    display: inline-block;
+    text-decoration: none;
+}
+.shopping-hint {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+}
+
+/* shopping checklist page (shopping.html) */
+.shopping-list ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.shopping-list li label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.8rem 0.25rem; /* roomy tap target for phones */
+    border-bottom: 1px solid #d8d2c0;
+    cursor: pointer;
+}
+.shopping-list input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 1.3rem;
+    height: 1.3rem;
+    accent-color: var(--brown);
+    align-self: center;
+}
+.shopping-list .item-name {
+    font-weight: 700;
+}
+.shopping-list .item-note {
+    font-size: 0.8rem;
+    font-style: italic;
+    color: var(--warn);
+}
+.shopping-list .item-drinks {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--brown);
+}
+.shopping-list li.done .item-name {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+.shopping-list .shopping-actions {
+    margin: 1rem 0 0;
+}
+.shopping-list .shopping-actions button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--brown);
+    font: inherit;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 /* ===========================================================================

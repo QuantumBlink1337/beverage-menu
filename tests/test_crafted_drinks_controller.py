@@ -8,7 +8,12 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from peewee import SqliteDatabase
 
-from controllers.crafted_drinks import _build_response, get_crafted_drinks, refresh
+from controllers.crafted_drinks import (
+    _build_response,
+    get_crafted_drinks,
+    get_shopping_list,
+    refresh,
+)
 from db import (
     CacheStatus,
     CraftedDrink as DBCraftedDrink,
@@ -351,3 +356,56 @@ class TestGetCraftedDrinks:
         with patch("controllers.crafted_drinks.refresh", new=AsyncMock()) as mock_refresh:
             await get_crafted_drinks()
         mock_refresh.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# TestShoppingList
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+class TestShoppingList:
+    @pytest.fixture(autouse=True)
+    def fresh_cache(self):
+        with patch.object(CacheStatus, "is_recipe_stale", return_value=False):
+            yield
+
+    async def test_lists_out_of_stock_and_unmatched(self):
+        _seed_grocy_product()  # Amaretto, no stock
+        drink = _seed_drink(tags=["Kaiya"])
+        _seed_ingredient(drink, "Amaretto")
+        _seed_ingredient(drink, "Dragonfruit")  # not in Grocy
+
+        result = await get_shopping_list(["Kaiya"])
+
+        assert {(i.ingredient, i.status) for i in result.items} == {
+            ("Amaretto", "out_of_stock"),
+            ("Dragonfruit", "unmatched"),
+        }
+
+    async def test_excludes_in_stock(self):
+        _seed_grocy_product()
+        _seed_stock()
+        drink = _seed_drink(tags=["Kaiya"])
+        _seed_ingredient(drink, "Amaretto")
+
+        result = await get_shopping_list(["Kaiya"])
+
+        assert result.items == []
+        assert result.drink_count == 1
+
+    async def test_only_includes_drinks_with_tag(self):
+        _seed_ingredient(_seed_drink("p1", "Kaiya Drink", tags=["Kaiya"]), "Lychee")
+        _seed_ingredient(_seed_drink("p2", "NYE Drink", tags=["NYE"]), "Champagne")
+
+        result = await get_shopping_list(["Kaiya"])
+
+        assert [i.ingredient for i in result.items] == ["Lychee"]
+
+    async def test_dedupes_across_drinks_and_lists_drinks(self):
+        _seed_ingredient(_seed_drink("p1", "Drink A", tags=["Kaiya"]), "Lime Juice")
+        _seed_ingredient(_seed_drink("p2", "Drink B", tags=["Kaiya"]), " lime juice ")
+
+        result = await get_shopping_list(["Kaiya"])
+
+        assert len(result.items) == 1
+        assert result.items[0].drinks == ["Drink A", "Drink B"]

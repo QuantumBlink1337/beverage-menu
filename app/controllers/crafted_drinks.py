@@ -11,7 +11,13 @@ from db import (
 from db import (
     CraftedDrink as DBCraftedDrink,
 )
-from models import CraftedDrink, CraftedDrinksResponse, IngredientDetail
+from models import (
+    CraftedDrink,
+    CraftedDrinksResponse,
+    IngredientDetail,
+    ShoppingListItem,
+    ShoppingListResponse,
+)
 from notion_client import NotionClient
 
 # Notion API rate limit: 3 requests/second.
@@ -58,11 +64,8 @@ async def refresh() -> None:
     CacheStatus.mark_recipe_refreshed()
 
 
-def _build_response(
-    host_mode: bool,
-    tags: list[str] | None = None,
-) -> CraftedDrinksResponse:
-
+def _build_matcher():
+    """Return resolve(ingredient_name) -> (matched, in_stock) built from current Grocy data."""
     products = list(GrocyProduct.select())
 
     # Build a stock map of in-stock product IDs.
@@ -95,12 +98,42 @@ def _build_response(
         if p.product_group_id in group_name_by_id:
             group_products[_norm(group_name_by_id[p.product_group_id])].append(p.id)
 
+    def resolve(name: str) -> tuple[bool, bool]:
+        # Precedence: alias → ingredient map → exact product name → product group.
+        # Matching is case/whitespace-insensitive (normalized key).
+        key = _norm(name)
+        pid = alias_map.get(key)
+        if pid is None:
+            pid = ingredient_map.get(key)  # fallback to ingredient map
+        if pid is None:
+            pid = grocy_by_name.get(key)
+
+        if pid is not None:  # matched a specific bottle
+            return True, pid in in_stock_ids
+        if key in group_products:  # matched a group → any bottle counts
+            return True, any(p in in_stock_ids for p in group_products[key])
+        return False, False
+
+    return resolve
+
+
+def _filter_by_tags(db_drinks, tags: list[str] | None):
+    """Keep drinks whose tags intersect the filter (no filter → all drinks)."""
+    if not tags:
+        return db_drinks
+    tag_set = set(tags)
+    return [d for d in db_drinks if tag_set & {t["name"] for t in d.tags}]
+
+
+def _build_response(
+    host_mode: bool,
+    tags: list[str] | None = None,
+) -> CraftedDrinksResponse:
+    resolve = _build_matcher()
+
     db_drinks = list(DBCraftedDrink.select())
 
-    # Filter by tags if provided — include drinks whose tags intersect the filter.
-    if tags:
-        tag_set = set(tags)
-        db_drinks = [d for d in db_drinks if tag_set & {t["name"] for t in d.tags}]
+    db_drinks = _filter_by_tags(db_drinks, tags)
 
     crafted_drinks = []
     for db_drink in db_drinks:
@@ -109,22 +142,7 @@ def _build_response(
         all_matched_in_stock = True
 
         for ing in db_drink.ingredients:
-            # Precedence: alias → exact product name → product group.
-            # Matching is case/whitespace-insensitive (normalized key).
-            key = _norm(ing.ingredient)
-            pid = alias_map.get(key)
-            if pid is None:
-                pid = ingredient_map.get(key)  # fallback to ingredient map
-            if pid is None:
-                pid = grocy_by_name.get(key)
-
-            if pid is not None:  # matched a specific bottle
-                matched, in_stock = True, pid in in_stock_ids
-            elif key in group_products:  # matched a group → any bottle counts
-                matched = True
-                in_stock = any(p in in_stock_ids for p in group_products[key])
-            else:
-                matched, in_stock = False, False
+            matched, in_stock = resolve(ing.ingredient)
 
             if not matched:
                 unmatched.append(ing.ingredient)
@@ -159,3 +177,34 @@ def _build_response(
         )
 
     return CraftedDrinksResponse(crafted_drinks=crafted_drinks)
+
+
+async def get_shopping_list(tags: list[str]) -> ShoppingListResponse:
+    """Ingredients missing (out of stock or unmatched) across drinks with any of `tags`."""
+    if CacheStatus.is_recipe_stale():
+        await refresh()
+    resolve = _build_matcher()
+    drinks = _filter_by_tags(list(DBCraftedDrink.select()), tags)
+
+    # Dedupe on the normalized name; remember which drinks need each ingredient.
+    items: dict[str, ShoppingListItem] = {}
+    for drink in drinks:
+        for ing in drink.ingredients:
+            matched, in_stock = resolve(ing.ingredient)
+            if matched and in_stock:
+                continue
+            item = items.setdefault(
+                _norm(ing.ingredient),
+                ShoppingListItem(
+                    ingredient=ing.ingredient.strip(),
+                    status="out_of_stock" if matched else "unmatched",
+                ),
+            )
+            if drink.name not in item.drinks:
+                item.drinks.append(drink.name)
+
+    return ShoppingListResponse(
+        tags=tags,
+        drink_count=len(drinks),
+        items=sorted(items.values(), key=lambda i: i.ingredient.lower()),
+    )
